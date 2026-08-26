@@ -210,7 +210,7 @@ def remove_stock(symbol: str) -> tuple[bool, str]:
 # Keep in step with MyAppVersion in installer.iss - the update check compares
 # this string against the newest GitHub release, so a build that ships with a
 # stale number here announces an update to itself.
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 
 # owner/repo, e.g. "hariom/mnt". Empty means no update check runs at all and
 # the Update button never appears - which is the correct behaviour until a
