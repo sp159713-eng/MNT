@@ -38,6 +38,19 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[InstallDelete]
+; Clear the previous build BEFORE copying the new one. [Files] overwrites but
+; never removes, so a module that existed in the old version and is gone from
+; this one would survive every future upgrade - and a stale .pyd next to a new
+; interpreter fails in ways that are very hard to read.
+;
+; _internal is PyInstaller's bundle directory and is replaced wholesale on
+; every build, so deleting it is safe. artifacts\ and data_cache\ are NOT
+; touched here: they hold the trained model, the paper account, the run ledger
+; and cached bars, which are the operator's and must survive an upgrade.
+Type: filesandordirs; Name: "{app}\_internal"
+Type: files; Name: "{app}\MNT.exe"
+
 [Files]
 ; Main executable and all dependencies from dist\MNT\
 Source: "dist\MNT\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
