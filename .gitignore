@@ -1,0 +1,32 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# The operator's own state, not the program. artifacts/ holds a trained model,
+# the paper account, the run ledger and the news cache; data_cache/ holds bars
+# fetched from Yahoo. Both are rebuilt by running the app and neither belongs
+# to anyone but the machine that made them.
+artifacts/
+data_cache/
+
+# Build output. dist/ alone is over 200 MB.
+build/
+dist/
+installer_output/
+*.spec.bak
+
+# Editing debris from in-place patches.
+*.orig
+*.bak
+*.bak-*
+*.corrupt-*
+*.tmp
+
+# Credentials are stored outside the project (see credentials.py store_dir),
+# but never let a stray copy in.
+credentials.json
+.env
+*.pem
+*.key
