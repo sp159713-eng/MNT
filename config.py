@@ -370,8 +370,9 @@ def search_symbols(query: str, limit: int = 8) -> list[dict]:
 
     direct = valid_symbol(text)
     if direct and direct not in seen:
-        rows.insert(0, {"symbol": direct, "name": "use this ticker as typed",
-                        "exchange": "-"})
+        label = ("no search match - check the spelling before adding" if not rows
+                 else "use this ticker as typed")
+        rows.insert(0, {"symbol": direct, "name": label, "exchange": "-"})
     rows.sort(key=lambda row: {"-": 0, "NSE": 1, "BSE": 2}[row["exchange"]])
     return rows[:limit]
 
