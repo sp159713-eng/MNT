@@ -43,7 +43,13 @@ import time
 import numpy as np
 import pandas as pd
 
-CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data_cache")
+# Next to the exe when frozen, not next to this module: PyInstaller unpacks
+# modules under _internal, which the installer deletes on every update, so a
+# cache rooted at __file__ is wiped by each upgrade and disagrees with
+# config.CACHE_DIR.
+CACHE_DIR = os.path.join(
+    os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
+    else os.path.dirname(os.path.abspath(__file__)), "data_cache")
 
 # Yahoo's ceiling per interval. Asking for more silently returns less, which is
 # worse than failing, so the request is clamped and the clamp is announced.
