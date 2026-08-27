@@ -40,6 +40,8 @@ import pages as pages_module
 from theme import Button, Card, Chart, Palette, SidebarButton, fonts, style_widgets
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+RUN_DIR = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
+           else BASE_DIR)
 
 
 class Worker:
@@ -54,7 +56,7 @@ class Worker:
         def run():
             try:
                 self.queue.put((on_done, function()))
-            except Exception as error:                          # noqa: BLE001
+            except BaseException as error:                      # noqa: BLE001
                 self.queue.put((on_error or (lambda e: None), error))
 
         threading.Thread(target=run, daemon=True).start()
@@ -362,14 +364,20 @@ class BacktestPage(Page):
         self.progress.start(12)
         self.log.delete("1.0", "end")
 
-        command = [sys.executable, "walkforward.py", "--signal", self.signal.get()]
+        if getattr(sys, "frozen", False):
+            command = [sys.executable, "--walkforward",
+                       "--signal", self.signal.get()]
+        else:
+            command = [sys.executable, "-u", "walkforward.py",
+                       "--signal", self.signal.get()]
         if self.fast.get():
             command += ["--fast", "--max-context", "1000"]
 
         def work():
+            environment = dict(os.environ, PYTHONUNBUFFERED="1")
             process = subprocess.Popen(
-                command, cwd=BASE_DIR, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, text=True, bufsize=1,
+                command, cwd=RUN_DIR, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True, bufsize=1, env=environment,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             lines = []
             for line in process.stdout:
@@ -432,6 +440,7 @@ class App(tk.Tk):
              ("Pulse", pages_module.PulsePage),
              ("News", pages_module.NewsPage),
              ("Venues", pages_module.VenuePage),
+             ("Universe", pages_module.UniversePage),
              ("Settings", pages_module.SettingsPage))
 
     def __init__(self):
@@ -534,12 +543,30 @@ class App(tk.Tk):
         return update.check(self.settings.APP_VERSION,
                             self.settings.UPDATE_REPO)
 
+    GLOW = ("#1f6feb", "#388bfd", "#58a6ff", "#79c0ff", "#58a6ff",
+            "#388bfd")
+
     def _update_done(self, found) -> None:
         if not found:
             return
         self.update_info = found
         self.update_button.config(text=f"Update to {found['version']}")
         self.update_button.pack(fill="x")
+        self._glow()
+
+    def _glow(self, step: int = 0) -> None:
+        if not self.update_info:
+            return
+        colour = self.GLOW[step % len(self.GLOW)]
+        button = self.update_button
+        button.base = colour
+        button.hover = "#79c0ff"
+        button.pressed = "#1f6feb"
+        try:
+            button.config(bg=colour, fg="#ffffff")
+        except tk.TclError:
+            return
+        self.after(420, self._glow, step + 1)
 
     def open_update(self) -> None:
         import webbrowser
@@ -559,4 +586,10 @@ class App(tk.Tk):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--walkforward":
+        import walkforward as walkforward_module
+
+        sys.argv = ["walkforward"] + sys.argv[2:]
+        walkforward_module.main()
+        sys.exit(0)
     App().mainloop()

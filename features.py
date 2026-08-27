@@ -230,6 +230,9 @@ def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
     horizon = horizon or config.TARGET_HORIZON
     start = start or config.START
 
+    if not symbols:
+        raise RuntimeError("No stocks yet - add them in the Universe tab.")
+
     frames = data_module.load(symbols, interval="1d", start=start)
     if not frames:
         raise RuntimeError("no price data loaded")
@@ -272,8 +275,15 @@ def cross_sectionalize(panel: pd.DataFrame) -> pd.DataFrame:
     listed yet.
     """
     panel = panel.dropna(subset=["target"]).copy()
+    supplied = len(panel)
     counts = panel.groupby("timestamp")["symbol"].transform("size")
     panel = panel[counts >= 10]
+
+    if supplied and panel.empty:
+        raise RuntimeError(
+            "Not enough stocks to rank. The model scores each name "
+            "against the others on the same day, so it needs at least "
+            "10 in the universe - add more in the Universe tab.")
 
     grouped = panel.groupby("timestamp")
     for column in FEATURE_COLUMNS:

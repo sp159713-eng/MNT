@@ -11,11 +11,12 @@ from the signal side.
                         horizon must clear it every 20 days. Same signal,
                         twentieth of the bill.
 
-  UNIVERSE, 30 names    NNS measured this directly: fitting on 150 names
-                        instead of 29 cost the book 1.32 points. A wider pool
-                        is more data and worse data - the extra names are less
-                        liquid, more gap-prone, and share less structure with
-                        the ones you actually want to hold.
+  UNIVERSE, yours       Ships empty: every name is one the operator adds in
+                        Settings, and any of them can be removed. NNS measured
+                        the cost of a wide pool directly - fitting on 150 names
+                        instead of 29 cost the book 1.32 points - so a short
+                        list of names you actually want to hold beats a long
+                        one.
 
   Long only             Shorting Indian cash equity means SLB or single-stock
                         futures. Neither is free and neither is modelled here,
@@ -38,33 +39,7 @@ BASE_DIR = (os.path.dirname(sys.executable) if FROZEN
 MODEL_DIR = os.path.join(BASE_DIR, "artifacts")
 CACHE_DIR = os.path.join(BASE_DIR, "data_cache")
 
-# Liquid NSE large caps. Every one has decades of history, a tight touch, and
-# enough depth that a retail book does not move it. Deliberately not the whole
-# NIFTY 50 - see the note above about wider pools.
-BASE_UNIVERSE = [
-    "RELIANCE", "TCS", "HDFCBANK", "ICICIBANK", "INFY", "HINDUNILVR",
-    "ITC", "SBIN", "BHARTIARTL", "KOTAKBANK", "LT", "AXISBANK",
-    "ASIANPAINT", "MARUTI", "TITAN", "SUNPHARMA", "ULTRACEMCO", "BAJFINANCE",
-    "NESTLEIND", "WIPRO", "ONGC", "NTPC", "POWERGRID", "HEROMOTOCO",
-    "TATASTEEL", "HCLTECH", "JSWSTEEL", "GRASIM", "CIPLA", "COALINDIA",
-    # Added 2026-08-20 from the operator's own book. Breadth is the reason:
-    # information ratio scales with the square root of the number of names, so
-    # 30 -> 38 buys about 12% more of it for exactly the same predictive skill,
-    # and it lifts the t-statistic the same way. Every one of these clears the
-    # history the model needs; four other holdings did not and were left out
-    # (Cohance 6.4y, Mirae FANG+ 5.3y, Mirae HangSeng Tech 4.7y, and Central
-    # Mine Planning at 0.4y, which listed in March 2026).
-    #
-    # MON100, the Motilal NASDAQ-100 ETF, was here briefly and was dropped on
-    # 2026-08-20. Not a judgement on the fund - the problem is mechanical. It
-    # tracks a market that is shut while NSE trades, so ranking it against
-    # Indian names on momentum compares a stale price against live ones, and
-    # cross-sectional rank is the only thing this model consumes.
-    "BHEL", "PFC", "CANBK", "MCX", "DHANUKA", "WOCKPHARMA", "NAVA",
-]
-# TATAMOTORS was here until the 2025 demerger split it into two listings and
-# the old symbol stopped resolving. Replaced rather than patched: a ticker whose
-# entity changed mid-sample is a different company either side of the join.
+BASE_UNIVERSE: list[str] = []
 
 # Names the operator added themselves, kept in artifacts/ so they survive a
 # rebuild - the bundle is replaced wholesale on every build, and a list stored
@@ -210,7 +185,7 @@ def remove_stock(symbol: str) -> tuple[bool, str]:
 # Keep in step with MyAppVersion in installer.iss - the update check compares
 # this string against the newest GitHub release, so a build that ships with a
 # stale number here announces an update to itself.
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.6"
 
 # owner/repo, e.g. "hariom/mnt". Empty means no update check runs at all and
 # the Update button never appears - which is the correct behaviour until a
@@ -357,6 +332,50 @@ def verify_symbol(symbol: str, min_years: float = 7.0) -> tuple[bool, str]:
     return True, f"{name}: {years:.1f}y of history, {len(bars)} bars."
 
 
+def search_symbols(query: str, limit: int = 8) -> list[dict]:
+    text = (query or "").strip()
+    if not text:
+        return []
+
+    try:
+        import yfinance as yf
+
+        quotes = yf.Search(text, max_results=25).quotes
+    except Exception as exc:
+        direct = valid_symbol(text)
+        if direct:
+            return [{"symbol": direct, "name": f"search unavailable: {exc}",
+                     "exchange": "-"}]
+        raise RuntimeError(f"search unavailable: {exc}")
+
+    rows, seen = [], {}
+    for quote in quotes:
+        raw = (quote.get("symbol") or "").strip().upper()
+        if not raw.endswith((".NS", ".BO")) or raw.startswith("0P"):
+            continue
+        symbol = valid_symbol(raw[:-3])
+        if not symbol:
+            continue
+        listed = "NSE" if raw.endswith(".NS") else "BSE"
+        if symbol in seen:
+            if listed == "NSE":
+                rows[seen[symbol]]["exchange"] = "NSE"
+            continue
+        seen[symbol] = len(rows)
+        rows.append({
+            "symbol": symbol,
+            "name": quote.get("shortname") or quote.get("longname") or "",
+            "exchange": listed,
+        })
+
+    direct = valid_symbol(text)
+    if direct and direct not in seen:
+        rows.insert(0, {"symbol": direct, "name": "use this ticker as typed",
+                        "exchange": "-"})
+    rows.sort(key=lambda row: {"-": 0, "NSE": 1, "BSE": 2}[row["exchange"]])
+    return rows[:limit]
+
+
 def main() -> None:
     import argparse
 
@@ -390,7 +409,6 @@ def main() -> None:
     elif args.remove:
         print(remove_stock(args.remove)[1])
     else:
-        print(f"Built in ({len(BASE_UNIVERSE)}): {', '.join(BASE_UNIVERSE)}")
         print(f"Added to universe ({len(USER_UNIVERSE)}): "
               f"{_with_sectors(USER_UNIVERSE)}")
         print(f"Watchlist ({len(WATCHLIST)}): {_with_sectors(WATCHLIST)}")

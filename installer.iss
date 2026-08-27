@@ -2,7 +2,7 @@
 ; Production NSE equity trading system
 
 #define MyAppName "MNT"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0.6"
 #define MyAppPublisher "MNT Trading"
 #define MyAppExeName "MNT.exe"
 #define MyAppURL "https://github.com/sp159713-eng/MNT"

@@ -66,6 +66,11 @@ def take(broker=None) -> dict:
         "errors": {},
     }
 
+    if not config.UNIVERSE:
+        snapshot["errors"]["universe"] = ("No stocks yet - add them in "
+                                          "the Universe tab.")
+        return snapshot
+
     closes = _closes()
     if closes.empty:
         snapshot["errors"]["universe"] = "no cached prices"

@@ -542,11 +542,16 @@ class NewsPage(Page):
                                  show="headings", height=16)
         for column, width, heading in (("score", 60, "SCORE"),
                                        ("symbol", 110, "SYMBOL"),
-                                       ("title", 640, "HEADLINE")):
+                                       ("title", 1400, "HEADLINE")):
             self.tree.heading(column, text=heading)
-            self.tree.column(column, width=width,
+            self.tree.column(column, width=width, minwidth=width,
+                             stretch=False,
                              anchor="center" if column == "score" else "w")
+        xscroll = ttk.Scrollbar(card.body, orient="horizontal",
+                                command=self.tree.xview)
+        self.tree.configure(xscrollcommand=xscroll.set)
         self.tree.pack(fill="both", expand=True)
+        xscroll.pack(fill="x")
         self.tree.tag_configure("pos", foreground=Palette.good)
         self.tree.tag_configure("neg", foreground=Palette.bad)
 
@@ -555,6 +560,38 @@ class NewsPage(Page):
                       "not a signal and nothing in this project trades on it.",
                  bg=Palette.panel, fg=Palette.faint,
                  font=self.f["small"]).pack(anchor="w", pady=(10, 0))
+        self.items = []
+        self.tree.bind("<<TreeviewSelect>>", self._select)
+        self.tree.bind("<Double-1>", self._open)
+
+        self.related = Card(self, "More on this stock",
+                            "double-click any headline to open it")
+        self.related.pack(fill="x", pady=(14, 0))
+        self.related_tree = ttk.Treeview(
+            self.related.body, columns=("score", "published", "title"),
+            show="headings", height=6)
+        for column, width, heading, anchor_ in (
+                ("score", 60, "SCORE", "center"),
+                ("published", 190, "PUBLISHED", "w"),
+                ("title", 1200, "HEADLINE", "w")):
+            self.related_tree.heading(column, text=heading)
+            self.related_tree.column(column, width=width, minwidth=width,
+                                     stretch=False, anchor=anchor_)
+        rscroll = ttk.Scrollbar(self.related.body, orient="horizontal",
+                                command=self.related_tree.xview)
+        self.related_tree.configure(xscrollcommand=rscroll.set)
+        self.related_tree.pack(fill="x")
+        rscroll.pack(fill="x")
+        self.related_tree.tag_configure("stripe", background=Palette.stripe)
+        self.related_tree.bind("<Double-1>", self._open_related)
+        self.related_rows = []
+
+        self.related_note = tk.Label(
+            self.related.body, text="Click a headline to see the rest for "
+                                    "that stock.",
+            bg=Palette.panel, fg=Palette.muted, font=self.f["small"],
+            anchor="w", justify="left", wraplength=900)
+        self.related_note.pack(fill="x", pady=(8, 0))
 
     def auto_toggle(self) -> None:
         """Start or stop the repeating fetch.
@@ -599,12 +636,17 @@ class NewsPage(Page):
         from datetime import datetime
 
         items, fresh = payload
+        self.items = items
+        self.related_rows = []
+        self.related_tree.delete(*self.related_tree.get_children())
+        self.related_note.config(text="Click a headline to see the rest for "
+                                      "that stock.")
         self.tree.delete(*self.tree.get_children())
         for item in sorted(items, key=lambda i: -i["score"]):
             tag = "pos" if item["score"] > 0 else "neg" if item["score"] < 0 else ""
             self.tree.insert("", "end", tags=(tag,), values=(
                 f"{item['score']:+d}" if item["score"] else "0",
-                item["symbol"], item["title"][:150]))
+                item["symbol"], item["title"]))
         when = datetime.now().strftime("%H:%M:%S")
         suffix = f", {fresh} new" if self.auto.get() else ""
         self.status.config(text=f"{len(items)} headlines{suffix}  ({when})",
@@ -612,6 +654,58 @@ class NewsPage(Page):
 
     def _failed(self, error) -> None:
         self.status.config(text=str(error)[:80], fg=Palette.bad)
+
+    def _selected_item(self):
+        selection = self.tree.selection()
+        if not selection:
+            return None
+        values = self.tree.item(selection[0], "values")
+        for item in self.items:
+            if item["symbol"] == values[1] and item["title"] == values[2]:
+                return item
+        return None
+
+    def _select(self, _event=None) -> None:
+        item = self._selected_item()
+        if item:
+            self._fill_related(item)
+
+    def _fill_related(self, chosen) -> None:
+        symbol = chosen["symbol"]
+        rows = [i for i in self.items
+                if i["symbol"] == symbol and i["title"] != chosen["title"]]
+        self.related_rows = rows
+        self.related_tree.delete(*self.related_tree.get_children())
+        for index, item in enumerate(rows):
+            self.related_tree.insert(
+                "", "end", tags=("stripe",) if index % 2 else (),
+                values=(f"{item['score']:+d}" if item["score"] else "0",
+                        (item.get("published") or "")[:22], item["title"]))
+        self.related_note.config(
+            text=(f"{len(rows)} other headline(s) for {symbol}."
+                  if rows else f"No other cached headlines for {symbol}."))
+
+    def _launch(self, item) -> None:
+        import webbrowser
+
+        link = (item.get("link") or "").strip()
+        if not link:
+            self.related_note.config(text="That headline carries no link.")
+            return
+        webbrowser.open_new_tab(link)
+
+    def _open(self, _event=None) -> None:
+        item = self._selected_item()
+        if item:
+            self._launch(item)
+
+    def _open_related(self, _event=None) -> None:
+        selection = self.related_tree.selection()
+        if not selection:
+            return
+        index = self.related_tree.index(selection[0])
+        if 0 <= index < len(self.related_rows):
+            self._launch(self.related_rows[index])
 
 
 class PulsePage(Page):
@@ -893,10 +987,12 @@ class SignalsPage(Page):
         self.todo_button = Button(switch, "What to do",
                                   lambda: self.show_view("todo"))
         self.todo_button.pack(side="left", padx=(0, 6))
-        self.screen_button = Button(switch, "Other names / screen",
-                                    lambda: self.show_view("screen"),
-                                    kind="ghost")
-        self.screen_button.pack(side="left")
+        self.book_button = Button(switch, "Screen: my book", self.run_book,
+                                  kind="ghost")
+        self.book_button.pack(side="left", padx=(0, 6))
+        self.cand_button = Button(switch, "Screen: other names",
+                                  self.run_candidates, kind="ghost")
+        self.cand_button.pack(side="left")
 
         # A status strip rather than a floating line of monospace: it is a
         # persistent statement about the account, so it gets a surface.
@@ -908,17 +1004,6 @@ class SignalsPage(Page):
                              fg=Palette.muted, font=self.f["label"],
                              anchor="w", justify="left", padx=14, pady=8)
         self.gate.pack(fill="x")
-
-        # Which set of names the screen looks at. Lives with the screen view
-        # rather than in the header, because it means nothing to "what to do" -
-        # and it used to be a header button that duplicated the view switch.
-        self.scope = tk.Frame(self, bg=Palette.bg)
-        self.book_button = Button(self.scope, "The book", self.run_book,
-                                  kind="ghost")
-        self.book_button.pack(side="left", padx=(0, 6))
-        self.cand_button = Button(self.scope, "Other names",
-                                  self.run_candidates, kind="ghost")
-        self.cand_button.pack(side="left")
 
         self.source = tk.Label(self, text="", bg=Palette.bg, fg=Palette.warn,
                                font=self.f["small"], anchor="w",
@@ -985,23 +1070,16 @@ class SignalsPage(Page):
     def show_view(self, which: str) -> None:
         """Swap which table is packed. The other one keeps its rows."""
         self.view = which
-        self.todo_button.configure(
-            bg=Palette.accent if which == "todo" else Palette.panel_high)
-        self.screen_button.configure(
-            bg=Palette.accent if which == "screen" else Palette.panel_high)
+        self._mark_scope()
 
         self.todo_card.pack_forget()
         self.card.pack_forget()
         self.source.pack_forget()
-        self.scope.pack_forget()
         if which == "todo":
             self.todo_card.pack(fill="both", expand=True)
-            self.run_button.configure(text="Refresh")
         else:
-            self.scope.pack(fill="x", pady=(0, 8))
             self.source.pack(fill="x", pady=(0, 10))
             self.card.pack(fill="both", expand=True)
-            self.run_button.configure(text="Re-screen")
 
     def refresh(self) -> None:
         """Recompute whichever view is showing, at whatever scope it is on."""
@@ -1053,9 +1131,7 @@ class SignalsPage(Page):
         self.todo_summary.config(
             text=(f"{buys} to buy, {len(plan) - buys} to sell, "
                   f"{traded:,.0f} traded against {equity:,.0f} equity.  "
-                  f"Book: {', '.join(picks)}.  Equal-weighted - config.py "
-                  f"measured sizing on model confidence losing 15bp to it.  "
-                  f"This page cannot place, arm or halt anything."))
+                  f"Book: {', '.join(picks)}.  Read-only."))
         self._refresh_gate()
 
     def _refresh_gate(self) -> None:
@@ -1085,13 +1161,12 @@ class SignalsPage(Page):
             self.refresh()
 
     def _mark_scope(self) -> None:
-        """Show which scope the table is displaying. Without this the two
-        buttons look identical and the heading says only "Names"."""
-        self.book_button.configure(
-            bg=Palette.accent if self.scope_name == "book" else Palette.panel_high)
-        self.cand_button.configure(
-            bg=Palette.accent if self.scope_name == "candidates"
-            else Palette.panel_high)
+        active = "todo" if self.view == "todo" else self.scope_name
+        for button, name in ((self.todo_button, "todo"),
+                             (self.book_button, "book"),
+                             (self.cand_button, "candidates")):
+            button.configure(bg=Palette.accent if name == active
+                             else Palette.panel_high)
 
     def run_book(self) -> None:
         self.scope_name = "book"
@@ -1183,9 +1258,7 @@ class SignalsPage(Page):
         self.summary.config(
             text=(f"{what}: {len(rows)} screened, {flagged} with flags, "
                   f"{listed} on a surveillance list.  Clean means no flag "
-                  f"tripped, not cleared - these are checks on the trading "
-                  f"pattern, and none of them can tell you a company is a "
-                  f"fraud."))
+                  f"tripped, not cleared."))
 
 
 class SettingsPage(Page):
@@ -1212,8 +1285,31 @@ class SettingsPage(Page):
         super().__init__(parent, app)
         self.header("Settings")
 
+        outer = tk.Frame(self, bg=Palette.bg)
+        outer.pack(fill="both", expand=True)
+        canvas = tk.Canvas(outer, bg=Palette.bg, highlightthickness=0)
+        scroll = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
+        body = tk.Frame(canvas, bg=Palette.bg)
+        body.bind("<Configure>", lambda _e: canvas.configure(
+            scrollregion=canvas.bbox("all")))
+        window = canvas.create_window((0, 0), window=body, anchor="nw")
+        canvas.bind("<Configure>",
+                    lambda e: canvas.itemconfigure(window, width=e.width))
+        canvas.configure(yscrollcommand=scroll.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scroll.pack(side="right", fill="y")
+
+        def wheel(event):
+            canvas.yview_scroll(-1 * (event.delta // 120), "units")
+
+        self._wheel = wheel
+        self._scroll_canvas = canvas
+        self._scroll_body = body
+        for widget in (canvas, body):
+            widget.bind("<MouseWheel>", wheel)
+
         # --- appearance ---------------------------------------------------
-        appearance = Card(self, "Appearance", "applies immediately")
+        appearance = Card(body, "Appearance", "applies immediately")
         appearance.pack(fill="x", pady=(0, 14))
 
         row = tk.Frame(appearance.body, bg=Palette.panel)
@@ -1239,7 +1335,7 @@ class SettingsPage(Page):
             fill="x", pady=(10, 0))
 
         # --- model --------------------------------------------------------
-        model_card = Card(self, "Model", "what the book actually trades")
+        model_card = Card(body, "Model", "what the book actually trades")
         model_card.pack(fill="x", pady=(0, 14))
 
         row = tk.Frame(model_card.body, bg=Palette.panel)
@@ -1248,7 +1344,12 @@ class SettingsPage(Page):
                  font=self.f["body"], width=16, anchor="w").pack(side="left")
 
         self.signal_buttons = {}
-        for name, label in (("lightgbm", "LightGBM"), ("nn", "Neural net")):
+        import importlib.util
+
+        choices = [("lightgbm", "LightGBM")]
+        if importlib.util.find_spec("torch") is not None:
+            choices.append(("nn", "Neural net"))
+        for name, label in choices:
             button = Button(row, label, lambda n=name: self.set_signal(n),
                             kind="ghost")
             button.pack(side="left", padx=(0, 8))
@@ -1276,57 +1377,23 @@ class SettingsPage(Page):
             fill="x", pady=(8, 0))
 
         # --- stocks -------------------------------------------------------
-        stocks_card = Card(self, "Stocks", "names you added yourself")
+        stocks_card = Card(body, "Stocks", "managed in the Universe tab")
         stocks_card.pack(fill="x", pady=(0, 14))
 
-        row = tk.Frame(stocks_card.body, bg=Palette.panel)
-        row.pack(fill="x")
-        tk.Label(row, text="Symbol", bg=Palette.panel, fg=Palette.text,
-                 font=self.f["body"], width=16, anchor="w").pack(side="left")
-        self.stock_entry = tk.Entry(row, bg=Palette.panel_high, fg=Palette.text,
-                                    font=self.f["mono_small"], relief="flat",
-                                    insertbackground=Palette.text)
-        self.stock_entry.pack(side="left", fill="x", expand=True, ipady=4)
-        self.stock_entry.bind("<Return>", lambda _event: self.add_stock(False))
-
-        buttons = tk.Frame(stocks_card.body, bg=Palette.panel)
-        buttons.pack(fill="x", pady=(10, 0))
-        self.add_universe_button = Button(
-            buttons, "Add to universe", lambda: self.add_stock(False),
-            kind="ghost")
-        self.add_universe_button.pack(side="left", padx=(0, 8))
-        self.add_watch_button = Button(
-            buttons, "Add to watchlist", lambda: self.add_stock(True),
-            kind="ghost")
-        self.add_watch_button.pack(side="left", padx=(0, 8))
-        self.remove_stock_button = Button(
-            buttons, "Remove", self.remove_stock, kind="ghost")
-        self.remove_stock_button.pack(side="left")
-
-        self.stock_note = tk.Label(
-            stocks_card.body, text="", bg=Palette.panel, fg=Palette.muted,
-            font=self.f["small"], anchor="w", justify="left", wraplength=820)
-        self.stock_note.pack(fill="x", pady=(10, 0))
-
         tk.Label(stocks_card.body,
-                 text="A name added to the UNIVERSE is fitted, ranked and can "
-                      "be bought - config.py records that fitting on 150 names "
-                      "instead of 29 cost the book 1.32 points, so this is the "
-                      "expensive half and the history check is not optional. A "
-                      "WATCHLIST name is fetched and shown and never reaches "
-                      "the model. Built-in names cannot be removed here. Added "
-                      "names live in artifacts/stocks.json and survive a "
-                      "reinstall; refit before the Book or Orders tabs are "
-                      "trusted.",
+                 text="Add, remove and search for stocks in the Universe tab. "
+                      "A name in the UNIVERSE is fitted, ranked and can be "
+                      "bought; a WATCHLIST name is fetched and shown and never "
+                      "reaches the model. Names live in artifacts/stocks.json "
+                      "and survive a reinstall; refit before the Book or "
+                      "Orders tabs are trusted.",
                  bg=Palette.panel, fg=Palette.faint, font=self.f["small"],
                  anchor="w", justify="left", wraplength=820).pack(
-            fill="x", pady=(8, 0))
-
-        self._show_stocks()
+            fill="x", pady=(2, 0))
 
         # --- debug --------------------------------------------------------
-        self.debug_card = Card(self, "Debug", "diagnostics, not daily use")
-        self.debug_card.pack(fill="both", expand=True)
+        self.debug_card = Card(body, "Debug", "diagnostics, not daily use")
+        self.debug_card.pack(fill="x", pady=(0, 14))
 
         controls = tk.Frame(self.debug_card.body, bg=Palette.panel)
         controls.pack(fill="x", pady=(0, 10))
@@ -1359,6 +1426,14 @@ class SettingsPage(Page):
 
         self._mark_theme()
         self._mark_signal()
+        self._bind_wheel(self._scroll_body)
+
+    def _bind_wheel(self, widget) -> None:
+        if isinstance(widget, ttk.Treeview):
+            return
+        widget.bind("<MouseWheel>", self._wheel)
+        for child in widget.winfo_children():
+            self._bind_wheel(child)
 
     # ------------------------------------------------------------------
 
@@ -1458,70 +1533,9 @@ class SettingsPage(Page):
                  f".{sys.version_info.micro}   theme "
                  f"{getattr(Palette, 'name', '?')}")
         self._mark_signal()
+        self._bind_wheel(self._scroll_body)
         if not self.cache_tree.get_children():
             self.check_cache()
-
-    def _show_stocks(self, message: str = "") -> None:
-        import config
-
-        added = config._with_sectors(config.USER_UNIVERSE)
-        watch = config._with_sectors(config.WATCHLIST)
-        summary = (f"Universe {len(config.UNIVERSE)} "
-                   f"({len(config.BASE_UNIVERSE)} built in, added {added})"
-                   f"   |   Watchlist {watch}")
-        self.stock_note.config(text=f"{message}   {summary}" if message
-                               else summary)
-
-    def _stock_buttons(self, enabled: bool) -> None:
-        for button in (self.add_universe_button, self.add_watch_button,
-                       self.remove_stock_button):
-            button.set_enabled(enabled)
-
-    def add_stock(self, watchlist: bool) -> None:
-        import config
-
-        symbol = config.valid_symbol(self.stock_entry.get())
-        if not symbol:
-            self._show_stocks("Type an NSE symbol first, e.g. DIVISLAB.")
-            return
-        self._stock_buttons(False)
-        self.stock_note.config(text=f"Checking {symbol} for tradeable "
-                                    f"history...")
-        self.app.worker.submit(lambda: self._stock_work(symbol, watchlist),
-                               self._stock_done, self._stock_failed)
-
-    def _stock_work(self, symbol: str, watchlist: bool):
-        import config
-
-        if watchlist:
-            label = config.detect_sector(symbol)
-            return config.add_stock(symbol, watchlist=True, sector=label)
-        ok, detail = config.verify_symbol(symbol)
-        if not ok:
-            return False, detail
-        label = config.detect_sector(symbol)
-        added, message = config.add_stock(symbol, watchlist=False,
-                                          sector=label)
-        return added, f"{detail} {message}"
-
-    def _stock_done(self, payload) -> None:
-        ok, detail = payload
-        self._stock_buttons(True)
-        if ok:
-            self.stock_entry.delete(0, "end")
-        self._show_stocks(detail)
-
-    def _stock_failed(self, error) -> None:
-        self._stock_buttons(True)
-        self._show_stocks(f"{type(error).__name__}: {error}")
-
-    def remove_stock(self) -> None:
-        import config
-
-        ok, detail = config.remove_stock(self.stock_entry.get())
-        if ok:
-            self.stock_entry.delete(0, "end")
-        self._show_stocks(detail)
 
     def check_cache(self) -> None:
         self.cache_button.set_enabled(False)
@@ -1576,3 +1590,387 @@ class SettingsPage(Page):
         if missing:
             note += f"  |  not cached: {', '.join(missing)}"
         self.cache_summary.config(text=note)
+
+
+class UniversePage(Page):
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+
+        self.card = Card(self, "Universe", "every name the book can see")
+        self.card.pack(fill="both", expand=True)
+
+        columns = ("symbol", "sector", "source", "list")
+        self.tree = ttk.Treeview(self.card.body, columns=columns,
+                                 show="headings", height=18)
+        for column, width, heading, anchor in (
+                ("symbol", 140, "SYMBOL", "w"),
+                ("sector", 220, "SECTOR", "w"),
+                ("source", 110, "SOURCE", "center"),
+                ("list", 110, "LIST", "center")):
+            self.tree.heading(column, text=heading)
+            self.tree.column(column, width=width, anchor=anchor)
+        self.tree.tag_configure("stripe", background=Palette.stripe)
+        self.tree.tag_configure("watch", foreground=Palette.muted)
+        scroll = ttk.Scrollbar(self.card.body, orient="vertical",
+                               command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.tree.pack(fill="both", expand=True)
+        self.tree.bind("<<TreeviewSelect>>", self._select)
+        self.tree.bind("<Double-1>", self._detail)
+
+        row = tk.Frame(self.card.body, bg=Palette.panel)
+        row.pack(fill="x", pady=(12, 0))
+        tk.Label(row, text="Symbol", bg=Palette.panel, fg=Palette.text,
+                 font=self.f["body"], width=16, anchor="w").pack(side="left")
+        self.entry = tk.Entry(row, bg=Palette.panel_high, fg=Palette.text,
+                              font=self.f["mono_small"], relief="flat",
+                              insertbackground=Palette.text)
+        self.entry.pack(side="left", fill="x", expand=True, ipady=4)
+        self.entry.bind("<Return>", lambda _event: self.search())
+
+        self.results = ttk.Treeview(self.card.body,
+                                    columns=("symbol", "name", "exchange"),
+                                    show="headings", height=5)
+        for column, width, heading, anchor in (
+                ("symbol", 140, "SYMBOL", "w"),
+                ("name", 420, "COMPANY", "w"),
+                ("exchange", 90, "LISTED", "center")):
+            self.results.heading(column, text=heading)
+            self.results.column(column, width=width, anchor=anchor)
+        self.results.tag_configure("stripe", background=Palette.stripe)
+        self.results.bind("<<TreeviewSelect>>", self._pick_result)
+        self.results_shown = False
+
+        buttons = tk.Frame(self.card.body, bg=Palette.panel)
+        buttons.pack(fill="x", pady=(10, 0))
+        self.search_button = Button(buttons, "Search", self.search,
+                                    kind="ghost")
+        self.search_button.pack(side="left", padx=(0, 8))
+        self.add_universe_button = Button(
+            buttons, "Add to universe", lambda: self.add(False), kind="ghost")
+        self.add_universe_button.pack(side="left", padx=(0, 8))
+        self.add_watch_button = Button(
+            buttons, "Add to watchlist", lambda: self.add(True), kind="ghost")
+        self.add_watch_button.pack(side="left", padx=(0, 8))
+        self.remove_button = Button(buttons, "Remove", self.remove,
+                                    kind="ghost")
+        self.remove_button.pack(side="left")
+        self.detail_button = Button(buttons, "Details",
+                                    self._detail, kind="ghost")
+        self.detail_button.pack(side="left", padx=(8, 0))
+
+        self.note = tk.Label(self.card.body, text="", bg=Palette.panel,
+                             fg=Palette.muted, font=self.f["small"],
+                             anchor="w", justify="left", wraplength=820)
+        self.note.pack(fill="x", pady=(10, 0))
+
+        tk.Label(self.card.body,
+                 text="A UNIVERSE name is fitted, ranked and can be bought. A "
+                      "WATCHLIST name is fetched and shown and never reaches "
+                      "the model. Every name here is one you added, so any of them "
+                      "can be removed. Names live in artifacts/stocks.json and "
+                      "survive a reinstall; refit before the Book or Orders "
+                      "tabs are trusted.",
+                 bg=Palette.panel, fg=Palette.faint, font=self.f["small"],
+                 anchor="w", justify="left", wraplength=820).pack(
+            fill="x", pady=(8, 0))
+
+        self._fill()
+
+    def _rows(self):
+        import config
+
+        base = {s.upper() for s in config.BASE_UNIVERSE}
+        watch = {s.upper() for s in config.WATCHLIST}
+        seen, rows = set(), []
+        for name in list(config.UNIVERSE) + list(config.WATCHLIST):
+            key = name.upper()
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append((name,
+                         config.SECTORS.get(name) or "-",
+                         "built in" if key in base else "added",
+                         "watchlist" if key in watch else "universe"))
+        rows.sort(key=lambda item: (item[3] == "watchlist", item[0]))
+        return rows
+
+    def _fill(self, message: str = "") -> None:
+        import config
+
+        self.tree.delete(*self.tree.get_children())
+        for index, values in enumerate(self._rows()):
+            tags = ["stripe"] if index % 2 else []
+            if values[3] == "watchlist":
+                tags.append("watch")
+            self.tree.insert("", "end", values=values, tags=tuple(tags))
+        summary = (f"Universe {len(config.UNIVERSE)} "
+                   f"({len(config.USER_UNIVERSE)} added)"
+                   f"   |   Watchlist {len(config.WATCHLIST)}")
+        self.note.config(text=f"{message}   {summary}" if message else summary)
+        self._selection_buttons()
+
+    def _selected(self):
+        items = self.tree.selection()
+        return self.tree.item(items[0], "values") if items else None
+
+    def _select(self, _event=None) -> None:
+        values = self._selected()
+        if values:
+            self.entry.delete(0, "end")
+            self.entry.insert(0, values[0])
+        self._selection_buttons()
+
+    def _detail(self, _event=None) -> None:
+        values = self._selected()
+        symbol = values[0] if values else self.entry.get().strip().upper()
+        if not symbol:
+            self._fill("Pick a stock first, then Details.")
+            return
+        StockDetail(self.app, symbol)
+
+    def _selection_buttons(self) -> None:
+        values = self._selected()
+        self.remove_button.set_enabled(not values or values[2] != "built in")
+
+    def _buttons(self, enabled: bool) -> None:
+        self.add_universe_button.set_enabled(enabled)
+        self.add_watch_button.set_enabled(enabled)
+        self.remove_button.set_enabled(enabled)
+
+    def search(self) -> None:
+        query = self.entry.get().strip()
+        if not query:
+            self._fill("Type a company or ticker first, e.g. Divi or DIVISLAB.")
+            return
+        self.search_button.set_enabled(False)
+        self.note.config(text=f"Searching NSE for {query!r}...")
+
+        def work():
+            import config
+
+            return config.search_symbols(query)
+
+        self.app.worker.submit(work, self._searched, self._search_failed)
+
+    def _searched(self, rows) -> None:
+        self.search_button.set_enabled(True)
+        self.results.delete(*self.results.get_children())
+        if not rows:
+            self._show_results(False)
+            self._fill(f"Nothing on NSE matched {self.entry.get().strip()!r}.")
+            return
+        for index, row in enumerate(rows):
+            self.results.insert("", "end", tags=("stripe",) if index % 2 else (),
+                                values=(row["symbol"], row["name"],
+                                        row["exchange"]))
+        self._show_results(True)
+        self._fill(f"{len(rows)} matches - pick one, then Add to universe or "
+                   f"watchlist.")
+
+    def _search_failed(self, error) -> None:
+        self.search_button.set_enabled(True)
+        self._show_results(False)
+        self._fill(f"{type(error).__name__}: {error}")
+
+    def _show_results(self, visible: bool) -> None:
+        if visible and not self.results_shown:
+            self.results.pack(fill="x", pady=(10, 0), before=self.note)
+        elif not visible and self.results_shown:
+            self.results.pack_forget()
+        self.results_shown = visible
+
+    def _pick_result(self, _event=None) -> None:
+        items = self.results.selection()
+        if not items:
+            return
+        self.entry.delete(0, "end")
+        self.entry.insert(0, self.results.item(items[0], "values")[0])
+
+    def add(self, watchlist: bool) -> None:
+        import config
+
+        symbol = config.valid_symbol(self.entry.get())
+        if not symbol:
+            self._fill("Type an NSE symbol first, e.g. DIVISLAB.")
+            return
+        self._buttons(False)
+        self.note.config(text=f"Checking {symbol} for tradeable history...")
+        self.app.worker.submit(lambda: self._work(symbol, watchlist),
+                               self._done, self._failed)
+
+    def _work(self, symbol: str, watchlist: bool):
+        import config
+
+        if watchlist:
+            label = config.detect_sector(symbol)
+            return config.add_stock(symbol, watchlist=True, sector=label)
+        ok, detail = config.verify_symbol(symbol)
+        if not ok:
+            return False, detail
+        label = config.detect_sector(symbol)
+        added, message = config.add_stock(symbol, watchlist=False,
+                                          sector=label)
+        return added, f"{detail} {message}"
+
+    def _done(self, payload) -> None:
+        ok, detail = payload
+        self._buttons(True)
+        if ok:
+            self.entry.delete(0, "end")
+        self._fill(detail)
+
+    def _failed(self, error) -> None:
+        self._buttons(True)
+        self._fill(f"{type(error).__name__}: {error}")
+
+    def remove(self) -> None:
+        import config
+
+        ok, detail = config.remove_stock(self.entry.get())
+        if ok:
+            self.entry.delete(0, "end")
+        self._fill(detail)
+
+    def on_show(self) -> None:
+        self._fill()
+
+
+_SCORES = None
+
+
+class StockDetail(tk.Toplevel):
+    def __init__(self, app, symbol: str):
+        super().__init__(app, bg=Palette.bg, padx=18, pady=18)
+        self.app = app
+        self.symbol = symbol
+        self.f = fonts()
+        self.closes = []
+        self.dates = []
+        self.colour = None
+        self.title(f"{symbol} - MNT")
+        self.geometry("900x640")
+
+        head = tk.Frame(self, bg=Palette.bg)
+        head.pack(fill="x")
+        tk.Label(head, text=symbol, bg=Palette.bg, fg=Palette.text,
+                 font=self.f["h1"]).pack(side="left")
+        self.sector = tk.Label(head, text="", bg=Palette.bg, fg=Palette.muted,
+                               font=self.f["body"])
+        self.sector.pack(side="left", padx=(12, 0))
+
+        self.stats = tk.Label(self, text="Reading cached history...",
+                              bg=Palette.bg, fg=Palette.muted,
+                              font=self.f["mono_small"], anchor="w",
+                              justify="left")
+        self.stats.pack(fill="x", pady=(12, 0))
+
+        card = Card(self, "Price", "daily closes from the local cache")
+        card.pack(fill="both", expand=True, pady=(14, 0))
+        self.chart = Chart(card.body, height=320)
+        self.chart.pack(fill="both", expand=True)
+
+        self.model = tk.Label(self, text="Model view: reading the model...",
+                              bg=Palette.bg, fg=Palette.muted,
+                              font=self.f["body"], anchor="w", justify="left",
+                              wraplength=860)
+        self.model.pack(fill="x", pady=(12, 0))
+
+        self.app.worker.submit(self._work, self._done, self._failed)
+        self.app.worker.submit(self._score_work, self._score_done,
+                               self._score_failed)
+
+    def _work(self):
+        import config as config_module
+        import data as data_module
+
+        frame = data_module.fetch(self.symbol, interval="1d", quiet=True)
+        series = frame["close"].dropna()
+        turnover = 0.0
+        if "volume" in frame:
+            recent = (frame["close"] * frame["volume"]).dropna().tail(20)
+            if len(recent):
+                turnover = float(recent.mean())
+        position = {}
+        try:
+            import broker as broker_module
+
+            position = broker_module.broker().holdings().get(self.symbol) or {}
+        except BaseException:
+            position = {}
+        return {
+            "closes": [float(v) for v in series.tolist()],
+            "dates": [str(t)[:10] for t in series.index],
+            "sector": config_module.SECTORS.get(self.symbol) or "-",
+            "turnover": turnover,
+            "position": position,
+        }
+
+    def _done(self, payload) -> None:
+        closes = payload["closes"]
+        self.closes = closes[-1000:]
+        self.dates = payload["dates"][-1000:]
+        self.sector.config(text=payload["sector"])
+        if not closes:
+            self.stats.config(text="No cached price history for this name yet.")
+            return
+        window = closes[-252:]
+        position = payload["position"]
+        quantity = position.get("qty", 0) or 0
+        average = float(position.get("avg", 0.0) or 0.0)
+        money = (f"{quantity:,} @ {average:,.2f} = {quantity * average:,.0f}"
+                 if quantity else "nothing held")
+        turnover = payload["turnover"]
+        self.stats.config(text=(
+            f"Last {closes[-1]:,.2f}     "
+            f"52w {min(window):,.2f} - {max(window):,.2f}     "
+            f"History {len(closes) / 252.0:,.1f}y     "
+            f"Turnover {turnover / 1e7:,.1f} Cr     "
+            f"Your money: {money}"))
+        self._draw()
+
+    def _failed(self, error) -> None:
+        self.stats.config(text=f"{type(error).__name__}: {error}",
+                          fg=Palette.bad)
+
+    def _draw(self) -> None:
+        if len(self.closes) < 2:
+            return
+        self.chart.line(self.closes, labels=self.dates, colour=self.colour,
+                        fill=False, formatter=lambda v: f"{v:,.0f}")
+
+    def _score_work(self):
+        global _SCORES
+        if _SCORES is not None:
+            return _SCORES
+        import features as features_module
+        import production as production_module
+
+        panel = features_module.cross_sectionalize(
+            features_module.build_panel())
+        frame = production_module.scored(panel)
+        _SCORES = {str(row.symbol): float(row.score)
+                   for row in frame.itertuples()}
+        return _SCORES
+
+    def _score_done(self, scores) -> None:
+        score = scores.get(self.symbol)
+        if score is None:
+            self.model.config(
+                text="Model view: this name is not in the fitted universe, so "
+                     "the model has no opinion on it.", fg=Palette.muted)
+            return
+        rising = score > 0
+        self.colour = Palette.good if rising else Palette.bad
+        self.model.config(
+            text=(f"Model view: {'UP' if rising else 'DOWN'} "
+                  f"(score {score:+.4f}) - the line is drawn in "
+                  f"{'green' if rising else 'red'} to match."),
+            fg=self.colour)
+        self._draw()
+
+    def _score_failed(self, error) -> None:
+        self.model.config(
+            text=f"Model view unavailable: {type(error).__name__}: {error}",
+            fg=Palette.muted)

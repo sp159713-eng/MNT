@@ -53,7 +53,6 @@ import pandas as pd
 import config
 import features as features_module
 import metrics as metrics_module
-import model as model_module
 
 
 class NeuralSignal:
@@ -105,6 +104,8 @@ class NeuralSignal:
         self.report = {}
 
     def fit(self, train_panel: pd.DataFrame, val_panel: pd.DataFrame) -> None:
+        import model as model_module
+
         self.net, self.report = model_module.train(
             train_panel, val_panel, hidden=self.hidden, epochs=self.epochs,
             learning_rate=self.learning_rate, dropout=self.dropout,
@@ -112,6 +113,8 @@ class NeuralSignal:
             weight_decay=self.weight_decay, columns=self.columns, quiet=True)
 
     def predict(self, panel: pd.DataFrame) -> np.ndarray:
+        import model as model_module
+
         if self.net is None:
             raise RuntimeError("fit first")
         return model_module.predict(self.net, panel, self.columns)
