@@ -29,6 +29,11 @@ SolidCompression=yes
 WizardStyle=modern
 ; Privileges
 PrivilegesRequired=lowest
+; An upgrade must not be blocked by a running copy, and the welcome page is
+; where the Update button lives, so it has to exist.
+DisableWelcomePage=no
+CloseApplications=yes
+RestartApplications=no
 ; Architecture
 ArchitecturesInstallIn64BitMode=x64compatible
 
@@ -76,6 +81,52 @@ Type: filesandordirs; Name: "{app}\artifacts"
 Type: filesandordirs; Name: "{app}\data_cache"
 
 [Code]
+var
+  InfoPageID: Integer;
+
+function PriorVersion(): String;
+var
+  Key, Value: String;
+begin
+  Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' +
+         '{A3F8B2C1-4D5E-6F7A-8B9C-0D1E2F3A4B5C}_is1';
+  Value := '';
+  if not RegQueryStringValue(HKCU, Key, 'DisplayVersion', Value) then
+    if not RegQueryStringValue(HKLM, Key, 'DisplayVersion', Value) then
+      Value := '';
+  Result := Value;
+end;
+
+function IsUpgrade(): Boolean;
+begin
+  Result := PriorVersion() <> '';
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if not IsUpgrade() then
+    Exit;
+  if (PageID = InfoPageID) or (PageID = wpSelectDir) or
+     (PageID = wpSelectProgramGroup) or (PageID = wpSelectTasks) or
+     (PageID = wpReady) then
+    Result := True;
+end;
+
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if (CurPageID = wpWelcome) and IsUpgrade() then
+  begin
+    WizardForm.WelcomeLabel1.Caption := 'Update MNT';
+    WizardForm.WelcomeLabel2.Caption :=
+      'MNT ' + PriorVersion() + ' is already installed.' + #13#10 + #13#10 +
+      'Click Update to replace it with version {#MyAppVersion}. Your added ' +
+      'stocks, the trained model, the paper account and cached prices are ' +
+      'all kept. If MNT is running it will be closed first.';
+    WizardForm.NextButton.Caption := 'Update';
+  end;
+end;
+
 procedure InitializeWizard();
 var
   InfoPage: TOutputMsgMemoWizardPage;
@@ -93,6 +144,7 @@ begin
     'CAUTION: This is a real trading system. Verify paper trading mode before connecting to a live broker.');
 
   InfoPage.RichEditViewer.Height := ScaleY(150);
+  InfoPageID := InfoPage.ID;
 end;
 
 function InitializeSetup(): Boolean;
