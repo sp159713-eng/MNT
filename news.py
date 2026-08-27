@@ -283,17 +283,35 @@ def main() -> None:
     print("\nThis is a word count, not a signal. Nothing trades on it.")
 
 
-def _held_or_default() -> list[str]:
-    """Whatever the paper account holds, else the first six of the universe."""
+def _held_or_default(limit: int = 8) -> list[str]:
+    """What is held, then the universe and watchlist, then liquid names
+    outside both - so the page still has something to show on a fresh
+    install, where the universe is empty by design."""
+    names: list[str] = []
     try:
         import broker as broker_module
 
-        held = list(broker_module.broker("paper").holdings())
-        if held:
-            return held
+        names = list(broker_module.broker("paper").holdings())
     except Exception:                                           # noqa: BLE001
-        pass
-    return config.UNIVERSE[:6]
+        names = []
+    if not names:
+        names = list(config.UNIVERSE)
+    for extra in config.WATCHLIST:
+        if extra not in names:
+            names.append(extra)
+    if len(names) < limit:
+        try:
+            import screen as screen_module
+
+            pool = list(screen_module.CANDIDATES)
+        except Exception:                                       # noqa: BLE001
+            pool = []
+        for extra in pool:
+            if len(names) >= limit:
+                break
+            if extra not in names:
+                names.append(extra)
+    return names[:limit]
 
 
 if __name__ == "__main__":
