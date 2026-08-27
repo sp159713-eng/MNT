@@ -649,6 +649,15 @@ class NewsPage(Page):
                 item["symbol"], item["title"]))
         when = datetime.now().strftime("%H:%M:%S")
         suffix = f", {fresh} new" if self.auto.get() else ""
+        if not items:
+            import config
+
+            self.status.config(
+                text=("No stocks yet - add them in the Universe tab."
+                      if not config.UNIVERSE
+                      else f"No headlines returned  ({when})"),
+                fg=Palette.muted)
+            return
         self.status.config(text=f"{len(items)} headlines{suffix}  ({when})",
                            fg=Palette.muted)
 
@@ -1255,6 +1264,14 @@ class SignalsPage(Page):
 
         flagged = sum(1 for r in rows if r["severity"] != "clean")
         listed = sum(1 for r in rows if r["listed"])
+        if not rows:
+            import config
+
+            self.summary.config(
+                text=("No stocks yet - add them in the Universe tab."
+                      if not config.UNIVERSE
+                      else f"{what}: nothing to screen."))
+            return
         self.summary.config(
             text=(f"{what}: {len(rows)} screened, {flagged} with flags, "
                   f"{listed} on a surveillance list.  Clean means no flag "
