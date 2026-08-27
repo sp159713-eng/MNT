@@ -1603,6 +1603,11 @@ class UniversePage(Page):
         self.detail_button = Button(buttons, "Details",
                                     self._detail, kind="ghost")
         self.detail_button.pack(side="left", padx=(8, 0))
+        self._force_symbol = None
+        self.force_button = Button(buttons, "Add anyway", self.add_force,
+                                   kind="ghost")
+        self.force_button.pack(side="left", padx=(8, 0))
+        self.force_button.set_enabled(False)
 
         self.note = tk.Label(self.card.body, text="", bg=Palette.panel,
                              fg=Palette.muted, font=self.f["small"],
@@ -1683,6 +1688,7 @@ class UniversePage(Page):
         self.add_universe_button.set_enabled(enabled)
         self.add_watch_button.set_enabled(enabled)
         self.remove_button.set_enabled(enabled)
+        self.force_button.set_enabled(enabled and bool(self._force_symbol))
 
     def search(self) -> None:
         query = self.entry.get().strip()
@@ -1741,6 +1747,7 @@ class UniversePage(Page):
         if not symbol:
             self._fill("Type an NSE symbol first, e.g. DIVISLAB.")
             return
+        self._force_symbol = None
         self._buttons(False)
         self.note.config(text=f"Checking {symbol} for tradeable history...")
         self.app.worker.submit(lambda: self._work(symbol, watchlist),
@@ -1751,21 +1758,46 @@ class UniversePage(Page):
 
         if watchlist:
             label = config.detect_sector(symbol)
-            return config.add_stock(symbol, watchlist=True, sector=label)
+            added, message = config.add_stock(symbol, watchlist=True,
+                                              sector=label)
+            return added, message, None
         ok, detail = config.verify_symbol(symbol)
         if not ok:
-            return False, detail
+            short = symbol if "of history, needs" in detail else None
+            if short:
+                detail += "  Press Add anyway to force it in."
+            return False, detail, short
         label = config.detect_sector(symbol)
         added, message = config.add_stock(symbol, watchlist=False,
                                           sector=label)
-        return added, f"{detail} {message}"
+        return added, f"{detail} {message}", None
 
     def _done(self, payload) -> None:
-        ok, detail = payload
+        ok, detail, short = payload
+        self._force_symbol = short
         self._buttons(True)
         if ok:
             self.entry.delete(0, "end")
         self._fill(detail)
+
+    def add_force(self) -> None:
+        symbol = self._force_symbol
+        if not symbol:
+            return
+        self._buttons(False)
+        self.note.config(text=f"Adding {symbol} without the history check...")
+        self.app.worker.submit(lambda: self._force_work(symbol),
+                               self._done, self._failed)
+
+    def _force_work(self, symbol: str):
+        import config
+
+        label = config.detect_sector(symbol)
+        added, message = config.add_stock(symbol, watchlist=False,
+                                          sector=label)
+        note = (f"{message} Forced in without the history check - the model "
+                f"cannot score it until it has a year of bars.")
+        return added, note, None
 
     def _failed(self, error) -> None:
         self._buttons(True)
