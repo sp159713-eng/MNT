@@ -568,12 +568,14 @@ class NewsPage(Page):
                             "double-click any headline to open it")
         self.related.pack(fill="x", pady=(14, 0))
         self.related_tree = ttk.Treeview(
-            self.related.body, columns=("score", "published", "title"),
-            show="headings", height=6)
+            self.related.body,
+            columns=("score", "symbol", "published", "title"),
+            show="headings", height=8)
         for column, width, heading, anchor_ in (
                 ("score", 60, "SCORE", "center"),
+                ("symbol", 110, "SYMBOL", "w"),
                 ("published", 190, "PUBLISHED", "w"),
-                ("title", 1200, "HEADLINE", "w")):
+                ("title", 1100, "HEADLINE", "w")):
             self.related_tree.heading(column, text=heading)
             self.related_tree.column(column, width=width, minwidth=width,
                                      stretch=False, anchor=anchor_)
@@ -583,6 +585,7 @@ class NewsPage(Page):
         self.related_tree.pack(fill="x")
         rscroll.pack(fill="x")
         self.related_tree.tag_configure("stripe", background=Palette.stripe)
+        self.related_tree.tag_configure("other", foreground=Palette.muted)
         self.related_tree.bind("<Double-1>", self._open_related)
         self.related_rows = []
 
@@ -681,18 +684,24 @@ class NewsPage(Page):
 
     def _fill_related(self, chosen) -> None:
         symbol = chosen["symbol"]
-        rows = [i for i in self.items
+        same = [i for i in self.items
                 if i["symbol"] == symbol and i["title"] != chosen["title"]]
+        others = [i for i in self.items if i["symbol"] != symbol]
+        rows = same + others
         self.related_rows = rows
         self.related_tree.delete(*self.related_tree.get_children())
         for index, item in enumerate(rows):
+            tags = ["stripe"] if index % 2 else []
+            if item["symbol"] != symbol:
+                tags.append("other")
             self.related_tree.insert(
-                "", "end", tags=("stripe",) if index % 2 else (),
+                "", "end", tags=tuple(tags),
                 values=(f"{item['score']:+d}" if item["score"] else "0",
+                        item["symbol"],
                         (item.get("published") or "")[:22], item["title"]))
         self.related_note.config(
-            text=(f"{len(rows)} other headline(s) for {symbol}."
-                  if rows else f"No other cached headlines for {symbol}."))
+            text=(f"{len(same)} more on {symbol}, then {len(others)} from "
+                  f"the rest of the book."))
 
     def _launch(self, item) -> None:
         import webbrowser
@@ -724,6 +733,18 @@ class PulsePage(Page):
         super().__init__(parent, app)
         row = self.header("Pulse")
         Button(row, "Snapshot", self.snapshot).pack(side="right")
+
+        tk.Label(self,
+                 text="Whether conditions suit a ranking model at all. "
+                      "Dispersion is how far apart the names are moving - "
+                      "wide is good, because ranking needs winners and "
+                      "losers to separate. High average correlation is bad: "
+                      "everything moving together leaves nothing to rank. "
+                      "Above 50-DMA and India VIX are breadth and fear. "
+                      "Press Snapshot to record one reading.",
+                 bg=Palette.bg, fg=Palette.faint, font=self.f["small"],
+                 anchor="w", justify="left", wraplength=900).pack(
+            fill="x", pady=(0, 12))
 
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
@@ -1408,39 +1429,6 @@ class SettingsPage(Page):
                  anchor="w", justify="left", wraplength=820).pack(
             fill="x", pady=(2, 0))
 
-        # --- debug --------------------------------------------------------
-        self.debug_card = Card(body, "Debug", "diagnostics, not daily use")
-        self.debug_card.pack(fill="x", pady=(0, 14))
-
-        controls = tk.Frame(self.debug_card.body, bg=Palette.panel)
-        controls.pack(fill="x", pady=(0, 10))
-        self.cache_button = Button(controls, "Check cache", self.check_cache,
-                                   kind="ghost")
-        self.cache_button.pack(side="left")
-        self.env_label = tk.Label(controls, text="", bg=Palette.panel,
-                                  fg=Palette.faint, font=self.f["mono_small"],
-                                  anchor="w")
-        self.env_label.pack(side="left", padx=(14, 0))
-
-        columns = ("symbol", "bars", "from", "to", "size")
-        self.cache_tree = ttk.Treeview(self.debug_card.body, columns=columns,
-                                       show="headings", height=12)
-        for column, width, heading, anchor in (
-                ("symbol", 130, "SYMBOL", "w"), ("bars", 90, "BARS", "e"),
-                ("from", 120, "FROM", "center"), ("to", 120, "TO", "center"),
-                ("size", 90, "KB", "e")):
-            self.cache_tree.heading(column, text=heading)
-            self.cache_tree.column(column, width=width, anchor=anchor)
-        self.cache_tree.tag_configure("stale", foreground=Palette.warn)
-        self.cache_tree.tag_configure("stripe", background=Palette.stripe)
-        self.cache_tree.pack(fill="both", expand=True)
-
-        self.cache_summary = tk.Label(self.debug_card.body, text="",
-                                      bg=Palette.panel, fg=Palette.faint,
-                                      font=self.f["small"], anchor="w",
-                                      justify="left", wraplength=860)
-        self.cache_summary.pack(anchor="w", fill="x", pady=(10, 0))
-
         self._mark_theme()
         self._mark_signal()
         self._bind_wheel(self._scroll_body)
@@ -1543,70 +1531,9 @@ class SettingsPage(Page):
         self.app.apply_theme(name)
 
     def on_show(self) -> None:
-        import sys
-
-        self.env_label.config(
-            text=f"python {sys.version_info.major}.{sys.version_info.minor}"
-                 f".{sys.version_info.micro}   theme "
-                 f"{getattr(Palette, 'name', '?')}")
         self._mark_signal()
         self._bind_wheel(self._scroll_body)
-        if not self.cache_tree.get_children():
-            self.check_cache()
 
-    def check_cache(self) -> None:
-        self.cache_button.set_enabled(False)
-        self.cache_summary.config(text="Reading the cache directory...")
-        self.app.worker.submit(self._work, self._done, self._failed)
-
-    def _work(self):
-        import datetime
-
-        import pandas as pd
-
-        import config
-
-        rows, missing = [], []
-        for symbol in config.UNIVERSE:
-            path = os.path.join(config.CACHE_DIR, f"{symbol}_NS_1d_adj.csv")
-            if not os.path.exists(path):
-                missing.append(symbol)
-                continue
-            frame = pd.read_csv(path, index_col=0, parse_dates=True)
-            last = frame.index[-1]
-            # Age is the point of this table. A file that stopped updating is
-            # the failure it exists to catch, and "5 days old" says that where
-            # a date alone leaves the reader doing subtraction.
-            age = (datetime.datetime.now() - last.to_pydatetime()).days
-            rows.append((symbol, len(frame), str(frame.index[0].date()),
-                         str(last.date()),
-                         f"{os.path.getsize(path) / 1024:,.0f}", age))
-        return rows, missing
-
-    def _failed(self, error) -> None:
-        self.cache_button.set_enabled(True)
-        self.cache_summary.config(text=f"{type(error).__name__}: {error}")
-
-    def _done(self, payload) -> None:
-        rows, missing = payload
-        self.cache_button.set_enabled(True)
-        self.cache_tree.delete(*self.cache_tree.get_children())
-
-        stale = 0
-        for index, (symbol, bars, first, last, size, age) in enumerate(rows):
-            old = age > 5
-            stale += old
-            tag = "stale" if old else ("stripe" if index % 2 else "")
-            self.cache_tree.insert("", "end", tags=(tag,) if tag else (),
-                                   values=(symbol, f"{bars:,}", first, last,
-                                           size))
-
-        note = f"{len(rows)} symbols cached"
-        if stale:
-            note += f"  |  {stale} more than 5 days old (amber)"
-        if missing:
-            note += f"  |  not cached: {', '.join(missing)}"
-        self.cache_summary.config(text=note)
 
 
 class UniversePage(Page):
@@ -1618,7 +1545,7 @@ class UniversePage(Page):
 
         columns = ("symbol", "sector", "source", "list")
         self.tree = ttk.Treeview(self.card.body, columns=columns,
-                                 show="headings", height=18)
+                                 show="headings", height=11)
         for column, width, heading, anchor in (
                 ("symbol", 140, "SYMBOL", "w"),
                 ("sector", 220, "SECTOR", "w"),
@@ -1682,16 +1609,17 @@ class UniversePage(Page):
                              anchor="w", justify="left", wraplength=820)
         self.note.pack(fill="x", pady=(10, 0))
 
-        tk.Label(self.card.body,
-                 text="A UNIVERSE name is fitted, ranked and can be bought. A "
+        self.help_label = tk.Label(
+            self.card.body,
+            text="A UNIVERSE name is fitted, ranked and can be bought. A "
                       "WATCHLIST name is fetched and shown and never reaches "
                       "the model. Every name here is one you added, so any of them "
                       "can be removed. Names live in artifacts/stocks.json and "
                       "survive a reinstall; refit before the Book or Orders "
                       "tabs are trusted.",
-                 bg=Palette.panel, fg=Palette.faint, font=self.f["small"],
-                 anchor="w", justify="left", wraplength=820).pack(
-            fill="x", pady=(8, 0))
+            bg=Palette.panel, fg=Palette.faint, font=self.f["small"],
+            anchor="w", justify="left", wraplength=820)
+        self.help_label.pack(fill="x", pady=(8, 0))
 
         self._fill()
 
@@ -1793,7 +1721,8 @@ class UniversePage(Page):
 
     def _show_results(self, visible: bool) -> None:
         if visible and not self.results_shown:
-            self.results.pack(fill="x", pady=(10, 0), before=self.note)
+            self.results.pack(fill="x", pady=(10, 0),
+                              before=self.help_label)
         elif not visible and self.results_shown:
             self.results.pack_forget()
         self.results_shown = visible

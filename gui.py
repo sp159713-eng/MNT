@@ -109,6 +109,15 @@ class PicksPage(Page):
                                font=self.f["small"])
         self.status.pack(side="right", padx=12)
 
+        tk.Label(self,
+                 text="The names the model would hold today, best score "
+                      "first. Press Compute holdings to work them out from "
+                      "the latest prices. Nothing here places an order - "
+                      "Orders does that.",
+                 bg=Palette.bg, fg=Palette.faint, font=self.f["small"],
+                 anchor="w", justify="left", wraplength=900).pack(
+            fill="x", pady=(0, 12))
+
         self.stats = tk.Frame(self, bg=Palette.bg)
         self.stats.pack(fill="x", pady=(0, 12))
         self.tiles = {}
@@ -206,6 +215,16 @@ class CostsPage(Page):
         tk.Label(self, text="Cost of a round trip", bg=Palette.bg,
                  fg=Palette.text, font=self.f["h1"]).pack(anchor="w",
                                                           pady=(0, 12))
+
+        tk.Label(self,
+                 text="What one buy-then-sell costs in charges and "
+                      "slippage. The big number is how far the price must "
+                      "move before you break even, so 34 bp means 0.34%. "
+                      "Fixed charges do not shrink, so small positions pay "
+                      "proportionally more - that is what the curve shows.",
+                 bg=Palette.bg, fg=Palette.faint, font=self.f["small"],
+                 anchor="w", justify="left", wraplength=900).pack(
+            fill="x", pady=(0, 12))
 
         controls = Card(self, "Position", "NSE cash equity, retail discount broker")
         controls.pack(fill="x", pady=(0, 12))
@@ -590,6 +609,12 @@ if __name__ == "__main__":
         import walkforward as walkforward_module
 
         sys.argv = ["walkforward"] + sys.argv[2:]
-        walkforward_module.main()
+        try:
+            walkforward_module.main()
+        except SystemExit:
+            raise
+        except BaseException as error:
+            print(f"{type(error).__name__}: {error}")
+            sys.exit(1)
         sys.exit(0)
     App().mainloop()
