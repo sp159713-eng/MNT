@@ -518,6 +518,17 @@ class NewsPage(Page):
         row = self.header("News")
         Button(row, "Fetch", self.fetch).pack(side="right")
 
+        finder = tk.Frame(row, bg=Palette.bg)
+        finder.pack(side="left", padx=(24, 0))
+        self.query = tk.Entry(finder, bg=Palette.panel_high, fg=Palette.text,
+                              font=self.f["mono_small"], relief="flat",
+                              insertbackground=Palette.text, width=26)
+        self.query.pack(side="left", ipady=4)
+        self.query.bind("<Return>", lambda _event: self.search())
+        self.search_button = Button(finder, "Search news", self.search,
+                                    kind="ghost")
+        self.search_button.pack(side="left", padx=(8, 0))
+
         self._timer = None
         self.every = tk.IntVar(value=15)
         self.auto = tk.BooleanVar(value=False)
@@ -663,6 +674,49 @@ class NewsPage(Page):
             return
         self.status.config(text=f"{len(items)} headlines{suffix}  ({when})",
                            fg=Palette.muted)
+
+    def search(self) -> None:
+        text = self.query.get().strip()
+        if not text:
+            self.status.config(text="Type a symbol or company name first.",
+                               fg=Palette.muted)
+            return
+        self.search_button.set_enabled(False)
+        self.status.config(text=f"Looking for news on {text}...",
+                           fg=Palette.muted)
+
+        def work():
+            import config
+            import news as news_module
+
+            symbol = config.valid_symbol(text)
+            if symbol:
+                items = news_module.fetch(symbol, limit=12)
+                if items:
+                    return symbol, items
+            matches = config.search_symbols(text, limit=1)
+            if matches and matches[0]["exchange"] != "-":
+                found = matches[0]["symbol"]
+                return found, news_module.fetch(found, limit=12)
+            return (symbol or text.upper()), []
+
+        self.app.worker.submit(work, self._searched, self._search_failed)
+
+    def _searched(self, payload) -> None:
+        symbol, items = payload
+        self.search_button.set_enabled(True)
+        self._done((items, 0))
+        if items:
+            self.status.config(text=f"{len(items)} headlines for {symbol}",
+                               fg=Palette.muted)
+        else:
+            self.status.config(text=f"No headlines found for {symbol}",
+                               fg=Palette.muted)
+
+    def _search_failed(self, error) -> None:
+        self.search_button.set_enabled(True)
+        self.status.config(text=f"{type(error).__name__}: {error}"[:90],
+                           fg=Palette.bad)
 
     def _failed(self, error) -> None:
         self.status.config(text=str(error)[:80], fg=Palette.bad)
