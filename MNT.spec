@@ -27,7 +27,8 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = []
 binaries = []
-hiddenimports = ['joblib', 'pandas', 'walkforward', 'backtest', 'metrics']
+hiddenimports = ['joblib', 'pandas', 'walkforward', 'backtest', 'metrics',
+                 'auth']
 
 for package in ('lightgbm', 'sklearn', 'yfinance', 'curl_cffi'):
     collected = collect_all(package)

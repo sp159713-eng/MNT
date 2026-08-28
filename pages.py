@@ -425,13 +425,27 @@ class SimPage(Page):
         tk.Label(row, text="sessions", bg=Palette.bg, fg=Palette.muted,
                  font=self.f["small"]).pack(side="right", padx=(0, 6))
 
+        self.capital_entry = tk.Entry(row, bg=Palette.panel_high,
+                                      fg=Palette.text,
+                                      font=self.f["mono_small"], relief="flat",
+                                      insertbackground=Palette.text, width=11,
+                                      justify="right")
+        self.capital_entry.insert(0, f"{self.app.capital:,.0f}")
+        self.capital_entry.bind("<Return>", lambda _event: self._apply_capital())
+        self.capital_entry.bind("<FocusOut>", lambda _event: self._apply_capital())
+        self.capital_entry.pack(side="right", padx=(0, 8), ipady=3)
+        tk.Label(row, text="capital Rs", bg=Palette.bg, fg=Palette.muted,
+                 font=self.f["small"]).pack(side="right", padx=(0, 6))
+
         self.progress = ttk.Progressbar(self, mode="indeterminate",
                                         style="TProgressbar")
 
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
         self.tiles = {}
-        for key, label in (("final", "closing equity"), ("bench", "buy & hold"),
+        for key, label in (("capital", "starting capital"),
+                           ("final", "closing equity"), ("bench", "buy & hold"),
+                           ("perfect", "perfect bot"),
                            ("charges", "charges paid"), ("dd", "max drawdown")):
             card = Card(tiles)
             card.pack(side="left", expand=True, fill="both", padx=(0, 10))
@@ -441,6 +455,7 @@ class SimPage(Page):
             tk.Label(card.body, text=label, bg=Palette.panel, fg=Palette.muted,
                      font=self.f["small"]).pack(anchor="w")
             self.tiles[key] = value
+        self.tiles["capital"].config(text=f"{self.app.capital:,.0f}")
 
         card = Card(self, "Equity", "traded book, marked at each close")
         card.pack(fill="both", expand=True)
@@ -450,7 +465,39 @@ class SimPage(Page):
                                 fg=Palette.muted, font=self.f["small"])
         self.verdict.pack(anchor="w", pady=(8, 0))
 
+    def _read_capital(self):
+        text = self.capital_entry.get().strip().replace(",", "")
+        text = text.replace("_", "").replace(" ", "")
+        for prefix in ("rs.", "rs", "₹"):
+            if text.lower().startswith(prefix):
+                text = text[len(prefix):]
+                break
+        try:
+            amount = float(text)
+        except ValueError:
+            return None
+        if amount <= 0 or amount > 1e12:
+            return None
+        return amount
+
+    def _apply_capital(self) -> bool:
+        amount = self._read_capital()
+        if amount is None:
+            self.verdict.config(
+                text="Starting capital must be a positive number, "
+                     "for example 500000.", fg=Palette.bad)
+            self.capital_entry.delete(0, "end")
+            self.capital_entry.insert(0, f"{self.app.capital:,.0f}")
+            return False
+        self.app.capital = amount
+        self.capital_entry.delete(0, "end")
+        self.capital_entry.insert(0, f"{amount:,.0f}")
+        self.tiles["capital"].config(text=f"{amount:,.0f}")
+        return True
+
     def run(self) -> None:
+        if not self._apply_capital():
+            return
         self.run_button.set_enabled(False)
         self.progress.pack(fill="x", pady=(0, 8))
         self.progress.start(12)
@@ -461,16 +508,23 @@ class SimPage(Page):
 
             every = self.app.settings.REBALANCE_EVERY
             top_k = self.app.settings.TOP_K
-            curve = paper_module.replay(days, capital, every, top_k, quiet=True)
+            panel = paper_module.build_panel()
+            curve = paper_module.replay(days, capital, every, top_k,
+                                        quiet=True, panel=panel)
             bench = paper_module.benchmark_curve(curve["timestamp"], capital)
             stats = paper_module.summarise(curve, bench, capital)
             run_id = paper_module.record(stats, every, top_k)
-            return curve, bench, capital, stats, run_id
+            try:
+                ceiling = paper_module.ceiling_curve(days, capital, every,
+                                                     top_k, panel=panel)
+            except Exception:                                   # noqa: BLE001
+                ceiling = None
+            return curve, bench, capital, stats, run_id, ceiling
 
         self.app.worker.submit(work, self._done, self._failed)
 
     def _done(self, payload) -> None:
-        curve, bench, capital, stats, run_id = payload
+        curve, bench, capital, stats, run_id, ceiling = payload
         self.run_button.set_enabled(True)
         self.progress.stop()
         self.progress.pack_forget()
@@ -482,6 +536,7 @@ class SimPage(Page):
         charges = stats["charges_paid"]
         fills = stats["trades"]
 
+        self.tiles["capital"].config(text=f"{capital:,.0f}")
         self.tiles["final"].config(
             text=f"{final:,.0f}",
             fg=Palette.good if final >= capital else Palette.bad)
@@ -489,13 +544,39 @@ class SimPage(Page):
         self.tiles["charges"].config(text=f"{charges:,.0f}")
         self.tiles["dd"].config(text=f"{drawdown:.1f}%", fg=Palette.bad)
 
-        labels = [str(curve["timestamp"].iloc[0].date()),
-                  str(curve["timestamp"].iloc[-1].date())]
+        stamps = [str(t.date()) for t in curve["timestamp"]]
+        labels = [stamps[0], stamps[-1]]
+
+        ideal = []
+        if ceiling is not None and len(ceiling) == len(equity):
+            ideal = ceiling["equity"].tolist()
+        self.tiles["perfect"].config(
+            text=f"{ideal[-1]:,.0f}" if ideal else "-",
+            fg=Palette.accent if ideal else Palette.muted)
+
+        def readout(index, value):
+            made = value - capital
+            pct = (made / capital * 100.0) if capital else 0.0
+            sign = "+" if made >= 0 else "-"
+            tone = Palette.good if made >= 0 else Palette.bad
+            text = (f"{stamps[index]}\n"
+                    f"equity  {value:,.0f}\n"
+                    f"made   {sign}{abs(made):,.0f}  ({sign}{abs(pct):.1f}%)")
+            if ideal:
+                text += f"\nperfect {ideal[index]:,.0f}"
+            return text, tone
+
+        ceiling_made = (ideal[-1] - capital) if ideal else 0.0
         self.chart.line(equity, labels=labels, baseline=capital,
                         colour=Palette.good if final >= capital else Palette.bad,
-                        formatter=lambda v: f"{v / 1000:,.0f}k")
+                        formatter=lambda v: f"{v / 1000:,.0f}k",
+                        readout=readout, overlay=ideal,
+                        overlay_label=(f"perfect bot {ideal[-1]:,.0f}  "
+                                       f"(+{ceiling_made:,.0f})")
+                        if ideal else None)
         logged = f" Logged as run {run_id}." if run_id else ""
         self.verdict.config(
+            fg=Palette.muted,
             text=(f"{stats['sessions']} sessions, {fills} fills. "
                   + ("Beat buy-and-hold." if final >= bench_final else
                      f"Lost to buy-and-hold by Rs {bench_final - final:,.0f} - "
@@ -508,6 +589,15 @@ class SimPage(Page):
         self.progress.stop()
         self.progress.pack_forget()
         self.verdict.config(text=str(error)[:140], fg=Palette.bad)
+
+
+def _when(item: dict) -> str:
+    stamp = (item.get("age") or "").strip()
+    if stamp:
+        return stamp
+    import news as news_module
+
+    return news_module.age(item.get("published") or "")
 
 
 class NewsPage(Page):
@@ -549,10 +639,12 @@ class NewsPage(Page):
 
         card = Card(self, "Headlines", "Google News RSS")
         card.pack(fill="both", expand=True)
-        self.tree = ttk.Treeview(card.body, columns=("score", "symbol", "title"),
-                                 show="headings", height=16)
+        self.tree = ttk.Treeview(
+            card.body, columns=("score", "symbol", "published", "title"),
+            show="headings", height=16)
         for column, width, heading in (("score", 60, "SCORE"),
                                        ("symbol", 110, "SYMBOL"),
+                                       ("published", 110, "PUBLISHED"),
                                        ("title", 1400, "HEADLINE")):
             self.tree.heading(column, text=heading)
             self.tree.column(column, width=width, minwidth=width,
@@ -660,16 +752,18 @@ class NewsPage(Page):
             tag = "pos" if item["score"] > 0 else "neg" if item["score"] < 0 else ""
             self.tree.insert("", "end", tags=(tag,), values=(
                 f"{item['score']:+d}" if item["score"] else "0",
-                item["symbol"], item["title"]))
+                item["symbol"], _when(item), item["title"]))
         when = datetime.now().strftime("%H:%M:%S")
         suffix = f", {fresh} new" if self.auto.get() else ""
         if not items:
             import config
+            import news as news_module
 
             self.status.config(
                 text=("No stocks yet - add them in the Universe tab."
                       if not config.UNIVERSE
-                      else f"No headlines returned  ({when})"),
+                      else f"Nothing published in the last "
+                           f"{news_module.MAX_AGE_DAYS} days  ({when})"),
                 fg=Palette.muted)
             return
         self.status.config(text=f"{len(items)} headlines{suffix}  ({when})",
@@ -727,7 +821,7 @@ class NewsPage(Page):
             return None
         values = self.tree.item(selection[0], "values")
         for item in self.items:
-            if item["symbol"] == values[1] and item["title"] == values[2]:
+            if item["symbol"] == values[1] and item["title"] == values[3]:
                 return item
         return None
 
@@ -751,8 +845,7 @@ class NewsPage(Page):
             self.related_tree.insert(
                 "", "end", tags=tuple(tags),
                 values=(f"{item['score']:+d}" if item["score"] else "0",
-                        item["symbol"],
-                        (item.get("published") or "")[:22], item["title"]))
+                        item["symbol"], _when(item), item["title"]))
         self.related_note.config(
             text=(f"{len(same)} more on {symbol}, then {len(others)} from "
                   f"the rest of the book."))

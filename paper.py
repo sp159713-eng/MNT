@@ -58,11 +58,103 @@ def load_model():
     return production.load()
 
 
+def build_panel() -> pd.DataFrame:
+    """The cross-sectional panel every walk here is driven from.
+
+    Split out so a caller running both the model and the hindsight ceiling
+    over the same window pays for it once rather than twice.
+    """
+    return features_module.cross_sectionalize(features_module.build_panel())
+
+
+def perfect_targets(closes: dict, symbols: list[str], date, ahead,
+                    top_k: int) -> list[str]:
+    """The names that actually rose most between the two dates.
+
+    This is the cheat. It reads prices that had not printed yet, which is the
+    entire point: it answers "what was there to be had", not "what could have
+    been known". Only risers are returned - a bot that saw the future would
+    sit in cash rather than buy the least-bad loser.
+    """
+    gains = []
+    for symbol in symbols:
+        series = closes.get(symbol)
+        if series is None or series.empty:
+            continue
+        now = series[series.index <= date]
+        later = series[series.index <= ahead]
+        if now.empty or later.empty:
+            continue
+        start, end = float(now.iloc[-1]), float(later.iloc[-1])
+        if start <= 0:
+            continue
+        gains.append((end / start - 1.0, symbol))
+    gains.sort(key=lambda pair: -pair[0])
+    return [symbol for gain, symbol in gains[:top_k] if gain > 0]
+
+
+def ceiling_curve(days: int, capital: float, every: int, top_k: int,
+                  panel: pd.DataFrame | None = None) -> pd.DataFrame:
+    """What a bot that guessed right every single time would have made.
+
+    Same universe, same rebalance cadence, same broker and the same charges -
+    only the ranking is replaced by hindsight. It is not attainable and is not
+    meant to be. It is there so the model's curve is read against the money
+    that was actually on the table, instead of against zero, which flatters
+    every strategy that makes anything at all.
+    """
+    import data as data_module
+
+    if panel is None:
+        panel = build_panel()
+    dates = np.sort(panel["timestamp"].unique())[-days:]
+    if len(dates) < every * 2:
+        raise SystemExit(f"only {len(dates)} dates available")
+
+    closes = {}
+    for symbol in sorted(panel["symbol"].unique()):
+        try:
+            frame = data_module.fetch(symbol, quiet=True)
+        except Exception:                                       # noqa: BLE001
+            continue
+        if not frame.empty:
+            closes[symbol] = frame["close"]
+
+    account = broker_module.PaperBroker(
+        capital=capital, path=os.path.join(config.MODEL_DIR, "ceiling.json"))
+    account.reset(capital)
+
+    rows = []
+    for index, date in enumerate(dates):
+        account.pricing_date = pd.Timestamp(date)
+
+        if index % every == 0:
+            frame = panel[panel["timestamp"] == date]
+            if len(frame) >= top_k * 2:
+                ahead = pd.Timestamp(dates[min(index + every, len(dates) - 1)])
+                targets = perfect_targets(closes, frame["symbol"].tolist(),
+                                          pd.Timestamp(date), ahead, top_k)
+                if targets:
+                    try:
+                        orders_module.execute(
+                            orders_module.plan(targets, account), account)
+                    except Exception:                           # noqa: BLE001
+                        pass
+
+        equity, _ = account.value()
+        rows.append({"timestamp": pd.Timestamp(date), "equity": equity})
+
+    account.pricing_date = None
+    return pd.DataFrame(rows)
+
+
 def replay(days: int, capital: float, every: int, top_k: int,
-           quiet: bool = False) -> pd.DataFrame:
+           quiet: bool = False, panel: pd.DataFrame | None = None
+           ) -> pd.DataFrame:
     """Walk the last `days` sessions, rebalancing every `every` of them."""
     signal, _ = load_model()
-    panel = features_module.cross_sectionalize(features_module.build_panel())
+    if panel is None:
+        panel = build_panel()
 
     dates = np.sort(panel["timestamp"].unique())[-days:]
     if len(dates) < every * 2:

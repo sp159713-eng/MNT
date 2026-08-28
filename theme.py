@@ -286,10 +286,57 @@ class Chart(tk.Canvas):
             self.create_text(x0 - 8, y, text=formatter(value), anchor="e",
                              fill=Palette.muted, font=self.fonts["mono_small"])
 
+    def _hover_readout(self, points, series, readout) -> None:
+        self.unbind("<Motion>")
+        self.unbind("<Leave>")
+
+        def move(event):
+            self.delete("hover")
+            index = min(range(len(points)),
+                        key=lambda i: abs(points[i][0] - event.x))
+            px, py = points[index]
+            _, y0, x1, y1 = self._plot_area()
+            self.create_line(px, y0, px, y1, fill=Palette.muted, dash=(2, 3),
+                             tags="hover")
+            self.create_oval(px - 4, py - 4, px + 4, py + 4,
+                             fill=Palette.accent, outline=Palette.panel,
+                             width=2, tags="hover")
+            result = readout(index, series[index])
+            text, colour = result if isinstance(result, tuple) else (result,
+                                                                    Palette.text)
+            if not text:
+                return
+            right = px > (self.PAD_LEFT + x1) / 2
+            anchor = "ne" if right else "nw"
+            tx = px - 12 if right else px + 12
+            label = self.create_text(tx, y0 + 6, text=text, anchor=anchor,
+                                     fill=colour, justify="left",
+                                     font=self.fonts["mono_small"],
+                                     tags="hover")
+            box = self.bbox(label)
+            if box:
+                shade = self.create_rectangle(box[0] - 7, box[1] - 5,
+                                              box[2] + 7, box[3] + 5,
+                                              fill=Palette.panel_high,
+                                              outline=Palette.grid,
+                                              tags="hover")
+                self.tag_lower(shade, label)
+
+        self.bind("<Motion>", move)
+        self.bind("<Leave>", lambda _event: self.delete("hover"))
+
     def line(self, series: list[float], labels: list[str] | None = None,
              colour: str | None = None, fill: bool = True,
-             formatter=lambda v: f"{v:,.0f}", baseline: float | None = None) -> None:
-        """A single line, optionally shaded to the bottom of the plot."""
+             formatter=lambda v: f"{v:,.0f}", baseline: float | None = None,
+             readout=None, overlay: list[float] | None = None,
+             overlay_label: str | None = None) -> None:
+        """A single line, optionally shaded to the bottom of the plot.
+
+        `readout` turns the chart into something you can interrogate: given a
+        point index and its value it returns the text to show, optionally as
+        (text, colour). Without it the chart binds nothing and behaves exactly
+        as before - a line you can only read off the axis.
+        """
 
         def render():
             if len(series) < 2:
@@ -301,6 +348,8 @@ class Chart(tk.Canvas):
             lo, hi = min(series), max(series)
             if baseline is not None:
                 lo, hi = min(lo, baseline), max(hi, baseline)
+            if overlay:
+                lo, hi = min(lo, min(overlay)), max(hi, max(overlay))
             span = (hi - lo) or 1.0
             lo, hi = lo - span * 0.08, hi + span * 0.08
             self._frame(lo, hi, formatter=formatter)
@@ -326,12 +375,26 @@ class Chart(tk.Canvas):
             flat = [coordinate for pair in points for coordinate in pair]
             self.create_line(flat, fill=stroke, width=2.5, smooth=False)
 
+            if overlay and len(overlay) == len(series):
+                ceiling = [point(i, v) for i, v in enumerate(overlay)]
+                self.create_line(
+                    [c for pair in ceiling for c in pair],
+                    fill=Palette.accent, width=1.6, dash=(5, 3), smooth=False)
+                if overlay_label:
+                    self.create_text(ceiling[-1][0] - 4, ceiling[-1][1] - 10,
+                                     text=overlay_label, anchor="e",
+                                     fill=Palette.accent,
+                                     font=self.fonts["mono_small"])
+
             if labels:
                 for index in (0, len(labels) - 1):
                     self.create_text(point(index, series[index])[0], y1 + 13,
                                      text=labels[index], fill=Palette.muted,
                                      font=self.fonts["mono_small"],
                                      anchor="w" if index == 0 else "e")
+
+            if readout:
+                self._hover_readout(points, series, readout)
 
         self._render = render
         self._redraw()

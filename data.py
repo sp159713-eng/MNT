@@ -153,11 +153,9 @@ def fetch(symbol: str, interval: str = "1d", period: str | None = None,
     path = _cache_path(symbol, interval, unadjusted)
 
     if os.path.exists(path) and not refresh:
-        frame = pd.read_csv(path, index_col=0, parse_dates=True)
-        if len(frame):
-            if clean:
-                frame = clean_bars(frame, symbol, quiet)
-            return _slice(frame, start, end)
+        frame = _memoised(path, symbol, clean, quiet)
+        if frame is not None and len(frame):
+            return _slice(frame, start, end).copy()
 
     import yfinance as yf   # imported late: cache hits should not pay for it
 
@@ -189,6 +187,38 @@ def fetch(symbol: str, interval: str = "1d", period: str | None = None,
     return _slice(frame, start, end)
 
 
+# A replay prices every holding on every session, and each of those calls used
+# to re-read the CSV and re-run clean_bars on it - about 14ms a time, against a
+# file that cannot change while the walk is running. Keyed on the file's mtime
+# so a refresh, or anything else that rewrites the cache, invalidates itself
+# without a stale-data window. Bounded, because the universe is not.
+_MEMO: dict = {}
+_MEMO_MAX = 256
+
+
+def clear_memo() -> None:
+    """Drop the in-process frame cache. Disk is untouched."""
+    _MEMO.clear()
+
+
+def _memoised(path: str, symbol: str, clean: bool, quiet: bool):
+    try:
+        key = (path, os.path.getmtime(path), clean)
+    except OSError:
+        return None
+    frame = _MEMO.get(key)
+    if frame is None:
+        frame = pd.read_csv(path, index_col=0, parse_dates=True)
+        if not len(frame):
+            return frame
+        if clean:
+            frame = clean_bars(frame, symbol, quiet)
+        if len(_MEMO) >= _MEMO_MAX:
+            _MEMO.pop(next(iter(_MEMO)), None)
+        _MEMO[key] = frame
+    return frame
+
+
 def _slice(frame: pd.DataFrame, start: str | None, end: str | None) -> pd.DataFrame:
     if start:
         frame = frame[frame.index >= pd.Timestamp(start).tz_localize(frame.index.tz)]
@@ -205,13 +235,20 @@ def load(symbols: list[str], interval: str = "1d", **kwargs) -> dict[str, pd.Dat
     announce itself in the results.
     """
     out, failed = {}, []
+    unadjusted = kwargs.get("unadjusted", False)
     for symbol in symbols:
+        # The courtesy pause below is for the vendor, and a cache hit never
+        # reaches the vendor. Sleeping through 182 local CSV reads cost about
+        # 27 seconds per panel build and bought nobody anything.
+        hits_network = kwargs.get("refresh", False) or not os.path.exists(
+            _cache_path(symbol, interval, unadjusted))
         try:
             out[symbol] = fetch(symbol, interval=interval, **kwargs)
         except Exception as error:                      # noqa: BLE001
             failed.append((symbol, str(error).split("\n")[0]))
             continue
-        time.sleep(0.15)        # be unremarkable to the vendor
+        if hits_network:
+            time.sleep(0.15)    # be unremarkable to the vendor
     if failed:
         print(f"\n{len(failed)} of {len(symbols)} symbols failed:", file=sys.stderr)
         for symbol, reason in failed:

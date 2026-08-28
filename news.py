@@ -39,7 +39,8 @@ import re
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from xml.etree import ElementTree
 
 import config
@@ -47,6 +48,13 @@ import config
 FEED = "https://news.google.com/rss/search?q={query}&hl=en-IN&gl=IN&ceid=IN:en"
 NEWS_PATH = os.path.join(config.MODEL_DIR, "news.jsonl")
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) MNT/1.0"
+
+# Google News RSS ranks by relevance, not date, so an unfiltered query mixes
+# last week with last May. `when:Nd` bounds the request and MAX_AGE_DAYS is
+# enforced again on what comes back, because the feed does not always honour
+# it. Nothing older than this reaches the page, even if that leaves it empty -
+# a stale headline presented as current is the worse failure.
+MAX_AGE_DAYS = 2
 
 # Company names, because "ITC" as a search term returns everything and nothing.
 QUERY_NAMES = {
@@ -129,12 +137,47 @@ def score(text: str) -> int:
     return total
 
 
-def fetch(symbol: str, limit: int = 6, timeout: int = 12) -> list[dict]:
-    """Recent headlines for one symbol."""
-    name = QUERY_NAMES.get(symbol, symbol)
-    query = urllib.parse.quote(f"{name} stock NSE")
-    request = urllib.request.Request(FEED.format(query=query),
-                                     headers={"User-Agent": USER_AGENT})
+def published_at(raw: str):
+    """RFC-822 pubDate to an aware datetime, or None when it will not parse."""
+    if not raw:
+        return None
+    try:
+        moment = parsedate_to_datetime(raw)
+    except (TypeError, ValueError):
+        return None
+    if moment is None:
+        return None
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    return moment
+
+
+def age(raw: str) -> str:
+    """How old the headline is, in the shortest form that stays honest."""
+    moment = published_at(raw)
+    if moment is None:
+        return ""
+    delta = datetime.now(timezone.utc) - moment
+    if delta < timedelta(0):
+        return "just now"
+    minutes = int(delta.total_seconds() // 60)
+    if minutes < 1:
+        return "just now"
+    if minutes < 60:
+        return f"{minutes}m ago"
+    hours = minutes // 60
+    if hours < 24:
+        return f"{hours}h ago"
+    days = hours // 24
+    if days < 30:
+        return f"{days}d ago"
+    return moment.astimezone().strftime("%d %b %Y")
+
+
+def _read(query: str, symbol: str, timeout: int) -> list[dict]:
+    request = urllib.request.Request(
+        FEED.format(query=urllib.parse.quote(query)),
+        headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=timeout) as response:
         tree = ElementTree.fromstring(response.read())
 
@@ -143,16 +186,48 @@ def fetch(symbol: str, limit: int = 6, timeout: int = 12) -> list[dict]:
         title = (item.findtext("title") or "").strip()
         if not title:
             continue
+        raw = (item.findtext("pubDate") or "").strip()
         items.append({
             "symbol": symbol,
             "title": title,
-            "published": (item.findtext("pubDate") or "").strip(),
+            "published": raw,
+            "age": age(raw),
             "link": (item.findtext("link") or "").strip(),
             "score": score(title),
         })
-        if len(items) >= limit:
-            break
     return items
+
+
+def _newest_first(items: list[dict]) -> list[dict]:
+    floor = datetime.min.replace(tzinfo=timezone.utc)
+    return sorted(items, key=lambda i: published_at(i["published"]) or floor,
+                  reverse=True)
+
+
+def _recent(items: list[dict], within_days: int) -> list[dict]:
+    cutoff = datetime.now(timezone.utc) - timedelta(days=within_days)
+    keep = []
+    for item in items:
+        moment = published_at(item["published"])
+        if moment is not None and moment >= cutoff:
+            keep.append(item)
+    return keep
+
+
+def fetch(symbol: str, limit: int = 6, timeout: int = 12,
+          within_days: int = MAX_AGE_DAYS) -> list[dict]:
+    """Headlines for one symbol from the last `within_days` days, newest first.
+
+    The `when:` bound is what keeps the page current - without it the feed
+    happily serves a three-month-old article above yesterday's, because its
+    ordering is relevance. The bound is applied twice: once in the query, and
+    once on the parsed dates, since the feed honours it loosely. Anything
+    undateable is dropped rather than guessed at.
+    """
+    name = QUERY_NAMES.get(symbol, symbol)
+    query = f"{name} stock NSE when:{within_days}d"
+    items = _recent(_read(query, symbol, timeout), within_days)
+    return _newest_first(items)[:limit]
 
 
 def collect(symbols: list[str], limit: int = 6, pause: float = 0.4,

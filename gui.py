@@ -470,7 +470,107 @@ class App(tk.Tk):
         self.worker = Worker(self)
         self.capital = 500000.0
         self.current = "Costs"
-        self._build()
+        self._gate()
+
+    def _gate(self) -> None:
+        """Sign up on the first launch, ask for the password on every one after.
+
+        The main window is not built until this passes, so there is no moment
+        where the book is on screen behind a dialog waiting to be dismissed.
+        """
+        import auth as auth_module
+
+        self.f = fonts()
+        self.configure(bg=Palette.bg)
+        style_widgets(self)
+        signing_up = not auth_module.exists()
+
+        self.minsize(360, 300)
+        self.geometry("460x430")
+
+        holder = tk.Frame(self, bg=Palette.bg)
+        holder.place(relx=0.5, rely=0.5, anchor="center")
+
+        tk.Label(holder, text="MNT", bg=Palette.bg, fg=Palette.text,
+                 font=self.f["h1"]).pack()
+        tk.Label(holder, text="NSE equity book", bg=Palette.bg,
+                 fg=Palette.faint, font=self.f["small"]).pack(pady=(0, 24))
+        tk.Label(holder, text="Set a password" if signing_up
+                 else "Enter your password", bg=Palette.bg, fg=Palette.text,
+                 font=self.f["h2"]).pack()
+        tk.Label(holder, text=(
+            f"First launch. Choose a password of at least "
+            f"{auth_module.MIN_LENGTH} characters. MNT will ask for it every "
+            f"time it opens." if signing_up else
+            (f"Signed in as {auth_module.account_name()}. Enter the password "
+             f"to open the book." if auth_module.account_name()
+             else "Locked. Enter the password to open the book.")),
+            bg=Palette.bg, fg=Palette.muted, font=self.f["small"],
+            wraplength=300, justify="center").pack(pady=(8, 18))
+
+        def field(placeholder: str, secret: bool = True):
+            tk.Label(holder, text=placeholder, bg=Palette.bg, fg=Palette.faint,
+                     font=self.f["small"]).pack(anchor="w", padx=44)
+            entry = tk.Entry(holder, show="•" if secret else "",
+                             bg=Palette.panel_high,
+                             fg=Palette.text, font=self.f["mono_small"],
+                             relief="flat", insertbackground=Palette.text,
+                             width=26, justify="center")
+            entry.pack(ipady=6, pady=(2, 10))
+            return entry
+
+        who = field("account name", secret=False) if signing_up else None
+        entry = field("password")
+        confirm = field("again") if signing_up else None
+
+        message = tk.Label(holder, text="", bg=Palette.bg, fg=Palette.bad,
+                           font=self.f["small"], wraplength=300,
+                           justify="center")
+        message.pack(pady=(0, 10))
+
+        def submit(_event=None):
+            if signing_up:
+                refusal = (auth_module.name_problem(who.get())
+                           or auth_module.create(entry.get(), confirm.get(),
+                                                 who.get()))
+            else:
+                refusal = ("" if auth_module.verify(entry.get())
+                           else "That password is not right.")
+            if refusal:
+                message.config(text=refusal)
+                for box in (entry, confirm):
+                    if box is not None:
+                        box.delete(0, "end")
+                (who if who is not None and auth_module.name_problem(who.get())
+                 else entry).focus_set()
+                return
+            holder.destroy()
+            self.minsize(960, 640)
+            self.geometry("1160x740")
+            self._build()
+
+        self.gate_button = Button(
+            holder, "Create password" if signing_up else "Unlock", submit)
+        self.gate_button.pack()
+        self.gate_submit = submit
+        self.gate_entry = entry
+        self.gate_confirm = confirm
+        self.gate_name = who
+        self.gate_message = message
+
+        for box in (who, entry, confirm):
+            if box is not None:
+                box.bind("<Return>", submit)
+        first = who if who is not None else entry
+
+        # Guarded: a fast login destroys these widgets before the timer fires,
+        # and focus_force on a dead window path raises.
+        def take_focus():
+            if first.winfo_exists():
+                first.focus_force()
+
+        first.focus_set()
+        self.after(80, take_focus)
 
     def apply_theme(self, name: str) -> None:
         """Switch palette and rebuild. Colours are construction arguments in
