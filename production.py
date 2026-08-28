@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import random
 
 import joblib
 import numpy as np
@@ -42,21 +43,49 @@ import signals as signals_module
 PATH = os.path.join(config.MODEL_DIR, "production.joblib")
 
 
-def fit(signal_name: str | None = None, quiet: bool = False):
-    """Fit the production signal on everything up to the embargo."""
-    signal_name = signal_name or config.PRODUCTION_SIGNAL
-    panel = features_module.cross_sectionalize(features_module.build_panel())
+SUBSET_SIZE = 40
+SUBSET_MEMBERS = 5
 
-    # The most recent rows have no usable target yet, and the last stretch that
-    # does is reserved for early stopping. The embargo between them is the same
-    # one split_panel applies, for the same reason.
+
+class SubsetEnsemble:
+    """Several fits, each on a random slice of the universe, averaged by rank.
+
+    Every feature the model sees is a rank within that day's universe, so the
+    inputs depend on which other names are present. One fit on the whole roster
+    learns one composition; add or drop a stock and every number shifts beneath
+    it. Fitting each member on a different random slice means no member has
+    ever seen the full roster, so the average is taken over models that
+    disagree about composition rather than one that assumes a fixed one.
+
+    Averaged by rank, not by score: members are fitted separately and their
+    score scales have no reason to be comparable. Ranks are.
+    """
+
+    def __init__(self, members, columns=None):
+        self.members = list(members)
+        self.columns = columns or getattr(self.members[0], "columns", None)
+
+    def predict(self, panel):
+        from scipy.stats import rankdata
+
+        return np.mean([rankdata(m.predict(panel)) for m in self.members],
+                       axis=0)
+
+
+def _split(panel):
+    """Train and validation, with the embargo split_panel uses."""
     dates = np.sort(panel["timestamp"].unique())
     gap = pd.offsets.Day(int(config.TARGET_HORIZON * 1.5))
     val_start = pd.Timestamp(dates[-1]) - pd.offsets.Day(400)
     train_end = val_start - gap
+    return (panel[panel["timestamp"] <= train_end],
+            panel[panel["timestamp"] > val_start], dates, train_end, val_start)
 
-    train_panel = panel[panel["timestamp"] <= train_end]
-    val_panel = panel[panel["timestamp"] > val_start]
+
+def _fit_one(symbols, signal_name: str, quiet: bool):
+    panel = features_module.cross_sectionalize(
+        features_module.build_panel(symbols))
+    train_panel, val_panel, dates, train_end, val_start = _split(panel)
 
     if len(train_panel) < 1000 or len(val_panel) < 100:
         raise SystemExit(f"not enough data: train {len(train_panel)}, "
@@ -66,10 +95,43 @@ def fit(signal_name: str | None = None, quiet: bool = False):
     signal.fit(train_panel, val_panel)
 
     if not quiet:
-        print(f"fitted {signal_name} on {len(train_panel):,} rows "
+        print(f"  fitted on {len(train_panel):,} rows "
               f"({pd.Timestamp(dates[0]).date()} .. {train_end.date()}), "
-              f"early-stopped on {len(val_panel):,} rows after {val_start.date()}")
+              f"early-stopped on {len(val_panel):,} rows after "
+              f"{val_start.date()}")
     return signal, panel
+
+
+def fit(signal_name: str | None = None, quiet: bool = False,
+        subsets: bool = True, size: int = SUBSET_SIZE,
+        members: int = SUBSET_MEMBERS):
+    """Fit the production signal on everything up to the embargo.
+
+    Fits `members` models, each on its own random slice of the universe, and
+    averages them. Pass subsets=False for the single fit on the whole roster
+    that this used to do. A universe too small to slice falls back to that on
+    its own, because sampling 40 of 45 names produces five near-identical
+    models and calls it an ensemble.
+    """
+    signal_name = signal_name or config.PRODUCTION_SIGNAL
+    names = list(config.UNIVERSE)
+
+    if not subsets or len(names) < size * 2:
+        return _fit_one(None, signal_name, quiet)
+
+    rng = random.Random(config.SEED)
+    fitted, panel = [], None
+    for index in range(members):
+        chosen = rng.sample(names, size)
+        if not quiet:
+            print(f"member {index + 1}/{members}: {len(chosen)} names")
+        signal, panel = _fit_one(chosen, signal_name, quiet)
+        fitted.append(signal)
+
+    if not quiet:
+        print(f"ensemble of {len(fitted)} fits, {size} names each, "
+              f"from a roster of {len(names)}")
+    return SubsetEnsemble(fitted), panel
 
 
 def save(signal, signal_name: str | None = None) -> str:
