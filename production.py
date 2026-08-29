@@ -213,9 +213,15 @@ def latest_complete_date(panel: pd.DataFrame, floor: float = 0.9):
     counts = panel.groupby("timestamp")["symbol"].size()
     if counts.empty:
         return None
-    reference = counts.tail(21).max()
+    reference = counts.max()
     eligible = counts[counts >= floor * reference]
-    return eligible.index.max() if len(eligible) else counts.index.max()
+    date = eligible.index.max() if len(eligible) else counts.index.max()
+    newest = counts.index.max()
+    if date != newest:
+        print(f"  scoring {pd.Timestamp(date).date()} on {counts.loc[date]} "
+              f"names, not {pd.Timestamp(newest).date()} on "
+              f"{counts.loc[newest]}")
+    return date
 
 
 def picks(panel: pd.DataFrame | None = None, k: int | None = None,

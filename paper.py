@@ -64,7 +64,8 @@ def build_panel() -> pd.DataFrame:
     Split out so a caller running both the model and the hindsight ceiling
     over the same window pays for it once rather than twice.
     """
-    return features_module.cross_sectionalize(features_module.build_panel())
+    return features_module.cross_sectionalize(
+        features_module.build_panel(), require_target=False)
 
 
 def perfect_targets(closes: dict, symbols: list[str], date, ahead,
