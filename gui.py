@@ -448,6 +448,142 @@ class BacktestPage(Page):
         self._append(f"\nfailed: {error}\n")
 
 
+class CommandPalette(tk.Frame):
+
+    ROWS = 8
+
+    def __init__(self, app):
+        super().__init__(app, bg=Palette.border)
+        self.app = app
+        self.f = fonts()
+        self.actions = []
+        self.matches = []
+        self.cursor = 0
+
+        shell = tk.Frame(self, bg=Palette.panel)
+        shell.pack(padx=1, pady=1)
+
+        self.entry = tk.Entry(shell, bg=Palette.panel_high, fg=Palette.text,
+                              font=self.f["body"], relief="flat", width=46,
+                              insertbackground=Palette.text)
+        self.entry.pack(fill="x", padx=12, pady=(12, 8), ipady=7)
+
+        self.rows = tk.Frame(shell, bg=Palette.panel)
+        self.rows.pack(fill="x", padx=8)
+
+        self.labels = []
+        for _ in range(self.ROWS):
+            row = tk.Frame(self.rows, bg=Palette.panel, height=26)
+            row.pack_propagate(False)
+            name = tk.Label(row, bg=Palette.panel, fg=Palette.text,
+                            font=self.f["body"], anchor="w")
+            name.pack(side="left", padx=(10, 0))
+            kind = tk.Label(row, bg=Palette.panel, fg=Palette.faint,
+                            font=self.f["small"], anchor="e")
+            kind.pack(side="right", padx=(0, 10))
+            self.labels.append((row, name, kind))
+
+        self.hint = tk.Label(shell, text="enter  open      esc  close",
+                             bg=Palette.panel, fg=Palette.faint,
+                             font=self.f["small"], anchor="w")
+        self.hint.pack(fill="x", padx=14, pady=(8, 10))
+
+        self.entry.bind("<KeyRelease>", self._typed)
+        self.entry.bind("<Escape>", self.close)
+        self.entry.bind("<Return>", self._activate)
+        self.entry.bind("<Down>", self._down)
+        self.entry.bind("<Up>", self._up)
+
+    @staticmethod
+    def rank(query: str, text: str):
+        low = text.lower()
+        if not query:
+            return 0
+        if query in low:
+            return low.index(query)
+        position = -1
+        for character in query:
+            position = low.find(character, position + 1)
+            if position < 0:
+                return None
+        return 100 + position
+
+    def catalogue(self):
+        found = [(name, "page", lambda n=name: self.app.show(n))
+                 for name in self.app.pages]
+        universe = getattr(self.app.settings, "UNIVERSE", ()) or ()
+        for symbol in universe:
+            found.append((symbol, "chart",
+                          lambda s=symbol: pages_module.StockDetail(
+                              self.app, s)))
+        return found
+
+    def open(self, _event=None):
+        self.actions = self.catalogue()
+        self.entry.delete(0, "end")
+        self.filter("")
+        self.place(relx=0.5, rely=0.14, anchor="n")
+        self.lift()
+        self.entry.focus_set()
+        return "break"
+
+    def close(self, _event=None):
+        self.place_forget()
+        return "break"
+
+    def filter(self, query: str):
+        query = query.strip().lower()
+        scored = []
+        for label, kind, action in self.actions:
+            place = self.rank(query, label)
+            if place is not None:
+                scored.append((place, len(label), label, kind, action))
+        scored.sort(key=lambda row: (row[0], 0 if row[3] == "page"
+                                        else 1, row[1], row[2]))
+        self.matches = [(label, kind, action)
+                        for _, _, label, kind, action in scored[:self.ROWS]]
+        self.cursor = 0
+        self.paint()
+
+    def paint(self):
+        for row, _, _ in self.labels:
+            row.pack_forget()
+        for index, (label, tag, _) in enumerate(self.matches):
+            row, name, kind = self.labels[index]
+            chosen = index == self.cursor
+            tint = Palette.panel_high if chosen else Palette.panel
+            row.configure(bg=tint)
+            name.configure(text=label, bg=tint,
+                           fg=Palette.text if chosen else Palette.muted)
+            kind.configure(text=tag, bg=tint, fg=Palette.faint)
+            row.pack(fill="x")
+
+    def _typed(self, event):
+        if event.keysym in ("Up", "Down", "Return", "Escape"):
+            return
+        self.filter(self.entry.get())
+
+    def _down(self, _event=None):
+        if self.matches:
+            self.cursor = (self.cursor + 1) % len(self.matches)
+            self.paint()
+        return "break"
+
+    def _up(self, _event=None):
+        if self.matches:
+            self.cursor = (self.cursor - 1) % len(self.matches)
+            self.paint()
+        return "break"
+
+    def _activate(self, _event=None):
+        if not self.matches:
+            return "break"
+        action = self.matches[self.cursor][2]
+        self.close()
+        action()
+        return "break"
+
+
 class App(tk.Tk):
     # Grouped: what to hold, what it costs, what it did, and the plumbing.
     PAGES = (("Book", PicksPage),
@@ -657,6 +793,10 @@ class App(tk.Tk):
         # from Settings, and rebuilding onto Costs would answer the click by
         # navigating away from it.
         self.show(self.current if self.current in self.pages else "Costs")
+
+        self.palette = CommandPalette(self)
+        self.bind_all("<Control-k>", self.palette.open)
+        self.bind_all("<Control-K>", self.palette.open)
 
     def _check_update(self) -> None:
         if not getattr(self.settings, "UPDATE_REPO", ""):
