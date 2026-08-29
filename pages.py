@@ -1966,6 +1966,11 @@ _SCORES = None
 
 
 class StockDetail(tk.Toplevel):
+
+    RANGES = (("1D", "groww", None), ("1W", "groww", None),
+              ("1M", "groww", None), ("6M", "1d", 126), ("1Y", "1d", 252),
+              ("5Y", "1d", 1260), ("MAX", "1d", None))
+
     def __init__(self, app, symbol: str):
         super().__init__(app, bg=Palette.bg, padx=18, pady=18)
         self.app = app
@@ -1973,6 +1978,10 @@ class StockDetail(tk.Toplevel):
         self.f = fonts()
         self.closes = []
         self.dates = []
+        self.daily_closes = []
+        self.daily_dates = []
+        self.intraday = {}
+        self.active_range = "1Y"
         self.colour = None
         self.title(f"{symbol} - MNT")
         self.geometry("900x640")
@@ -1991,7 +2000,23 @@ class StockDetail(tk.Toplevel):
                               justify="left")
         self.stats.pack(fill="x", pady=(12, 0))
 
-        card = Card(self, "Price", "daily closes from the local cache")
+        ranges = tk.Frame(self, bg=Palette.bg)
+        ranges.pack(fill="x", pady=(10, 0))
+        self.range_buttons = {}
+        for label, _interval, _span in self.RANGES:
+            button = tk.Label(ranges, text=label, bg=Palette.panel,
+                              fg=Palette.muted, font=self.f["small"],
+                              padx=12, pady=5, cursor="hand2")
+            button.pack(side="left", padx=(0, 6))
+            button.bind("<Button-1>",
+                        lambda _event, name=label: self.set_range(name))
+            self.range_buttons[label] = button
+        self.range_note = tk.Label(ranges, text="", bg=Palette.bg,
+                                   fg=Palette.muted,
+                                   font=self.f["mono_small"])
+        self.range_note.pack(side="left", padx=(14, 0))
+
+        card = Card(self, "Price", "1D-1M live from Groww, longer ranges from the local cache")
         card.pack(fill="both", expand=True, pady=(14, 0))
         self.chart = Chart(card.body, height=320)
         self.chart.pack(fill="both", expand=True)
@@ -2034,6 +2059,8 @@ class StockDetail(tk.Toplevel):
 
     def _done(self, payload) -> None:
         closes = payload["closes"]
+        self.daily_closes = list(closes)
+        self.daily_dates = list(payload["dates"])
         self.closes = closes[-1000:]
         self.dates = payload["dates"][-1000:]
         self.sector.config(text=payload["sector"])
@@ -2053,11 +2080,78 @@ class StockDetail(tk.Toplevel):
             f"History {len(closes) / 252.0:,.1f}y     "
             f"Turnover {turnover / 1e7:,.1f} Cr     "
             f"Your money: {money}"))
-        self._draw()
+        self.set_range(self.active_range)
 
     def _failed(self, error) -> None:
         self.stats.config(text=f"{type(error).__name__}: {error}",
                           fg=Palette.bad)
+
+    def set_range(self, label: str) -> None:
+        spec = {name: (interval, span)
+                for name, interval, span in self.RANGES}.get(label)
+        if spec is None:
+            return
+        self.active_range = label
+        for name, button in self.range_buttons.items():
+            chosen = name == label
+            button.config(bg=Palette.accent if chosen else Palette.panel,
+                          fg=Palette.on_accent if chosen else Palette.muted)
+
+        interval, span = spec
+        if interval != "groww":
+            if not self.daily_closes:
+                return
+            closes = (self.daily_closes if span is None
+                      else self.daily_closes[-span:])
+            dates = (self.daily_dates if span is None
+                     else self.daily_dates[-span:])
+            self._apply(closes, dates)
+            return
+
+        cached = self.intraday.get(label)
+        if cached is not None:
+            self._apply(*cached)
+            return
+        self.range_note.config(text=f"loading {label}...", fg=Palette.muted)
+        self.app.worker.submit(
+            lambda: self._intraday_work(label, interval, span),
+            self._intraday_done, self._intraday_failed)
+
+    def _intraday_work(self, label, interval, days):
+        import groww as groww_module
+
+        closes, labels = groww_module.series(self.symbol, label)
+        return (label, closes, labels)
+
+    def _intraday_done(self, payload) -> None:
+        label, closes, dates = payload
+        if len(closes) < 2:
+            self.range_note.config(
+                text=f"{label}: the vendor has no intraday bars for this name",
+                fg=Palette.warn)
+            return
+        self.intraday[label] = (closes, dates)
+        if self.active_range == label:
+            self._apply(closes, dates)
+
+    def _intraday_failed(self, error) -> None:
+        self.range_note.config(text=f"{self.active_range}: {error}",
+                               fg=Palette.bad)
+
+    def _apply(self, closes, dates) -> None:
+        self.closes = list(closes)
+        self.dates = list(dates)
+        if len(self.closes) < 2:
+            self.range_note.config(text=f"{self.active_range}: not enough "
+                                        f"history", fg=Palette.warn)
+            return
+        first, last = self.closes[0], self.closes[-1]
+        change = ((last / first) - 1.0) * 100.0 if first else 0.0
+        self.colour = Palette.good if change >= 0 else Palette.bad
+        self.range_note.config(
+            text=f"{last:,.2f}   {change:+.2f}%   {len(self.closes)} points",
+            fg=self.colour)
+        self._draw()
 
     def _draw(self) -> None:
         if len(self.closes) < 2:
