@@ -266,7 +266,8 @@ def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
     return panel.sort_values(["timestamp", "symbol"]).reset_index(drop=True)
 
 
-def cross_sectionalize(panel: pd.DataFrame) -> pd.DataFrame:
+def cross_sectionalize(panel: pd.DataFrame,
+                       require_target: bool = True) -> pd.DataFrame:
     """Rank every feature within its date; centre the target within its date.
 
     Ranks are mapped to [-1, 1]. Dates with fewer than 10 live names are dropped
@@ -274,7 +275,7 @@ def cross_sectionalize(panel: pd.DataFrame) -> pd.DataFrame:
     feature, and those dates are early history where half the universe had not
     listed yet.
     """
-    panel = panel.dropna(subset=["target"]).copy()
+    panel = panel.dropna(subset=["target"]).copy() if require_target         else panel.copy()
     supplied = len(panel)
     counts = panel.groupby("timestamp")["symbol"].transform("size")
     panel = panel[counts >= 10]
@@ -303,6 +304,8 @@ def cross_sectionalize(panel: pd.DataFrame) -> pd.DataFrame:
     panel["target_excess"] = panel["target"] - grouped["target"].transform("mean")
 
     panel[MODEL_COLUMNS] = panel[MODEL_COLUMNS].fillna(0.0)
+    if not require_target:
+        return panel.reset_index(drop=True)
     return panel.dropna(subset=["target_excess"]).reset_index(drop=True)
 
 

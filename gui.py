@@ -164,14 +164,15 @@ class PicksPage(Page):
         import production
 
         _, bundle = production.load()
-        panel = features_module.cross_sectionalize(features_module.build_panel())
+        panel = features_module.cross_sectionalize(
+            features_module.build_panel(), require_target=False)
         latest = production.scored(panel)
 
         capital = self.app.capital
         each = capital / config.TOP_K
         return {
             "rows": latest.head(config.TOP_K),
-            "date": panel["timestamp"].max(),
+            "date": latest["timestamp"].iloc[0],
             "model": bundle["name"],
             "each": each,
             "cost": costs_module.cost_bp(each),

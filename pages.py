@@ -2167,7 +2167,7 @@ class StockDetail(tk.Toplevel):
         import production as production_module
 
         panel = features_module.cross_sectionalize(
-            features_module.build_panel())
+            features_module.build_panel(), require_target=False)
         frame = production_module.scored(panel)
         _SCORES = {str(row.symbol): float(row.score)
                    for row in frame.itertuples()}

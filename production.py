@@ -209,15 +209,25 @@ def load():
     return bundle["signal"], bundle
 
 
+def latest_complete_date(panel: pd.DataFrame, floor: float = 0.9):
+    counts = panel.groupby("timestamp")["symbol"].size()
+    if counts.empty:
+        return None
+    reference = counts.tail(21).max()
+    eligible = counts[counts >= floor * reference]
+    return eligible.index.max() if len(eligible) else counts.index.max()
+
+
 def picks(panel: pd.DataFrame | None = None, k: int | None = None,
           on_date=None) -> list[str]:
     """The k highest-scoring symbols, by default on the latest date available."""
     k = k or config.TOP_K
     signal, _ = load()
     if panel is None:
-        panel = features_module.cross_sectionalize(features_module.build_panel())
+        panel = features_module.cross_sectionalize(
+            features_module.build_panel(), require_target=False)
 
-    date = on_date if on_date is not None else panel["timestamp"].max()
+    date = on_date if on_date is not None else latest_complete_date(panel)
     frame = panel[panel["timestamp"] == date].copy()
     if frame.empty:
         return []
@@ -228,7 +238,7 @@ def picks(panel: pd.DataFrame | None = None, k: int | None = None,
 def scored(panel: pd.DataFrame, on_date=None) -> pd.DataFrame:
     """Every name on one date with its score attached, highest first."""
     signal, _ = load()
-    date = on_date if on_date is not None else panel["timestamp"].max()
+    date = on_date if on_date is not None else latest_complete_date(panel)
     frame = panel[panel["timestamp"] == date].copy()
     frame["score"] = signal.predict(frame)
     return frame.sort_values("score", ascending=False)
@@ -244,9 +254,10 @@ def main() -> None:
 
     if args.picks:
         signal, bundle = load()
-        panel = features_module.cross_sectionalize(features_module.build_panel())
+        panel = features_module.cross_sectionalize(
+            features_module.build_panel(), require_target=False)
         frame = scored(panel)
-        date = panel["timestamp"].max()
+        date = frame["timestamp"].iloc[0]
         print(f"\n{bundle['name']} | {date.date()} | top {config.TOP_K} of "
               f"{len(frame)}\n")
         print(f"{'#':>3}  {'symbol':<14}{'score':>10}{'mom_126':>10}{'vol_21':>9}")
