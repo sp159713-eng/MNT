@@ -460,7 +460,10 @@ class App(tk.Tk):
              ("News", pages_module.NewsPage),
              ("Venues", pages_module.VenuePage),
              ("Universe", pages_module.UniversePage),
+             ("Training", pages_module.TrainingPage),
              ("Settings", pages_module.SettingsPage))
+
+    ADMIN_ONLY = ("Training",)
 
     def __init__(self):
         super().__init__()
@@ -621,8 +624,12 @@ class App(tk.Tk):
         container = tk.Frame(self, bg=Palette.bg)
         container.pack(side="left", fill="both", expand=True, padx=26, pady=24)
 
+        import auth as auth_module
+
         self.pages, self.buttons = {}, {}
         for name, factory in self.PAGES:
+            if name in self.ADMIN_ONLY and not auth_module.is_admin():
+                continue
             page = factory(container, self)
             self.pages[name] = page
 

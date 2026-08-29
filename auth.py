@@ -65,6 +65,13 @@ def account_name() -> str:
     return name if isinstance(name, str) else ""
 
 
+ADMIN_ACCOUNT = "AdmiN"
+
+
+def is_admin() -> bool:
+    return account_name().strip().casefold() == ADMIN_ACCOUNT.casefold()
+
+
 def name_problem(name: str) -> str:
     """Why this account name will not do, or an empty string when it is fine."""
     if not isinstance(name, str) or not name.strip():

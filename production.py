@@ -82,10 +82,17 @@ def _split(panel):
             panel[panel["timestamp"] > val_start], dates, train_end, val_start)
 
 
-def _fit_one(symbols, signal_name: str, quiet: bool):
-    panel = features_module.cross_sectionalize(
-        features_module.build_panel(symbols))
-    train_panel, val_panel, dates, train_end, val_start = _split(panel)
+def _fit_one(symbols, signal_name: str, quiet: bool, panel=None,
+             window_start=None, window_end=None):
+    if panel is None:
+        panel = features_module.cross_sectionalize(
+            features_module.build_panel(symbols))
+    window = panel
+    if window_start is not None:
+        window = window[window["timestamp"] >= pd.Timestamp(window_start)]
+    if window_end is not None:
+        window = window[window["timestamp"] <= pd.Timestamp(window_end)]
+    train_panel, val_panel, dates, train_end, val_start = _split(window)
 
     if len(train_panel) < 1000 or len(val_panel) < 100:
         raise SystemExit(f"not enough data: train {len(train_panel)}, "
@@ -102,16 +109,28 @@ def _fit_one(symbols, signal_name: str, quiet: bool):
     return signal, panel
 
 
+def fit_window(symbols, signal_name: str | None = None, panel=None,
+               start=None, end=None, quiet: bool = True):
+    return _fit_one(symbols, signal_name or config.PRODUCTION_SIGNAL, quiet,
+                    panel, start, end)
+
+
 def fit(signal_name: str | None = None, quiet: bool = False,
-        subsets: bool = True, size: int = SUBSET_SIZE,
+        subsets: bool = False, size: int = SUBSET_SIZE,
         members: int = SUBSET_MEMBERS):
     """Fit the production signal on everything up to the embargo.
 
-    Fits `members` models, each on its own random slice of the universe, and
-    averages them. Pass subsets=False for the single fit on the whole roster
-    that this used to do. A universe too small to slice falls back to that on
-    its own, because sampling 40 of 45 names produces five near-identical
-    models and calls it an ensemble.
+    One fit over the whole roster, which is the default because it measured
+    better. Pass subsets=True to instead fit `members` models on random slices
+    of `size` names each and average them by rank.
+
+    The subset ensemble was the default from 54eaa69 until it was measured
+    against a plain fit on 41 paired draws - same names, same window, same seed
+    for both, each scored on thirty names it had never seen. It lost on every
+    axis: rank IC -0.0065, excess -1.80%/yr, ahead in only 17 of 41 draws, at
+    roughly twice the fit time. Neither difference is significant on its own,
+    but nothing supports paying double to fit on 40 names at a time when the
+    book trades all of them, so the whole roster is the default again.
     """
     signal_name = signal_name or config.PRODUCTION_SIGNAL
     names = list(config.UNIVERSE)

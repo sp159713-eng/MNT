@@ -2099,3 +2099,242 @@ class StockDetail(tk.Toplevel):
         self.model.config(
             text=f"Model view unavailable: {type(error).__name__}: {error}",
             fg=Palette.muted)
+
+
+def _has_unseen(record: dict) -> bool:
+    return (bool(record.get("scored_on_unseen_names", True))
+            and bool(record.get("held_out", ["?"])))
+
+
+class TrainingPage(Page):
+
+    def __init__(self, parent, app):
+        super().__init__(parent, app)
+        row = self.header("Training")
+
+        self.run_button = Button(row, "Train", self.start)
+        self.run_button.pack(side="right", padx=(8, 0))
+        self.promote_button = Button(row, "Promote", self.promote, kind="ghost")
+        self.promote_button.pack(side="right", padx=(8, 0))
+
+        self.names = tk.IntVar(value=30)
+        ttk.Spinbox(row, from_=6, to=120, increment=2, width=5,
+                    textvariable=self.names,
+                    font=self.f["mono_small"]).pack(side="right", padx=(0, 8))
+        tk.Label(row, text="names", bg=Palette.bg, fg=Palette.muted,
+                 font=self.f["small"]).pack(side="right", padx=(0, 6))
+
+        self.progress = ttk.Progressbar(self, mode="indeterminate",
+                                        style="TProgressbar")
+
+        tiles = tk.Frame(self, bg=Palette.bg)
+        tiles.pack(fill="x", pady=(0, 14))
+        self.tiles = {}
+        for key, label in (("unseen_ic", "rank IC, unseen names"),
+                           ("unseen_excess", "top-6 excess, unseen"),
+                           ("same_ic", "rank IC, trained names"),
+                           ("slots", "runs kept")):
+            card = Card(tiles)
+            card.pack(side="left", expand=True, fill="both", padx=(0, 10))
+            value = tk.Label(card.body, text="-", bg=Palette.panel,
+                             fg=Palette.text, font=self.f["number"])
+            value.pack(anchor="w")
+            tk.Label(card.body, text=label, bg=Palette.panel, fg=Palette.muted,
+                     font=self.f["small"]).pack(anchor="w")
+            self.tiles[key] = value
+
+        panes = tk.Frame(self, bg=Palette.bg)
+        panes.pack(fill="both", expand=True)
+
+        left = Card(panes, "Run log",
+                    "a random slice of the universe, a random window")
+        left.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        self.text = tk.Text(left.body, bg=Palette.panel, fg=Palette.muted,
+                            font=self.f["mono_small"], relief="flat",
+                            wrap="word", height=14)
+        self.text.pack(fill="both", expand=True)
+
+        right = Card(panes, "Runs", "scored on names the fit never saw")
+        right.pack(side="left", fill="both", expand=True)
+        columns = ("id", "when", "seed", "names", "ic", "excess", "trained")
+        self.tree = ttk.Treeview(right.body, columns=columns,
+                                 show="headings", height=14)
+        for column, width, heading, anchor in (
+                ("id", 44, "ID", "e"), ("when", 118, "WHEN", "w"),
+                ("seed", 70, "SEED", "e"), ("names", 56, "NAMES", "e"),
+                ("ic", 86, "UNSEEN IC", "e"),
+                ("excess", 92, "EXCESS/YR", "e"),
+                ("trained", 92, "TRAINED IC", "e")):
+            self.tree.heading(column, text=heading)
+            self.tree.column(column, width=width, anchor=anchor)
+        self.tree.tag_configure("stripe", background=Palette.stripe)
+        self.tree.pack(fill="both", expand=True)
+
+        self.verdict = tk.Label(right.body, text="", bg=Palette.panel,
+                                fg=Palette.muted, font=self.f["small"],
+                                anchor="w", justify="left", wraplength=460)
+        self.verdict.pack(anchor="w", fill="x", pady=(8, 0))
+
+        self.busy = False
+        self.lines = []
+        self.shown = 0
+
+    def on_show(self) -> None:
+        self.refresh()
+
+    def refresh(self) -> None:
+        import training as training_module
+
+        records = sorted(training_module.runs(), key=lambda r: r.get("id", 0),
+                         reverse=True)
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        for index, record in enumerate(records):
+            tags = ("stripe",) if index % 2 else ()
+            self.tree.insert(
+                "", "end", iid=str(record.get("id", 0)), tags=tags,
+                values=(record.get("id", 0), record.get("at", ""),
+                        record.get("seed", 0), record.get("count", 0),
+                        (f"{record.get('rank_ic', float('nan')):+.4f}"
+                         if _has_unseen(record) else "none held"),
+                        (f"{record.get('excess_annual_pct', 0.0):+.2f}%"
+                         if _has_unseen(record) else "-"),
+                        f"{record.get('same_rank_ic', float('nan')):+.4f}"))
+        self.tiles["slots"].config(text=str(len(records)))
+        if records:
+            self._show_tiles(records[0])
+        else:
+            self.verdict.config(
+                text="No runs yet. Train fits a random slice of the universe "
+                     "over a random window, then scores it on names it never "
+                     "saw. That unseen number is the one that matters.",
+                fg=Palette.muted)
+
+    def _show_tiles(self, record: dict) -> None:
+        unseen = record.get("rank_ic", float("nan"))
+        excess = record.get("excess_annual_pct", 0.0)
+        if not _has_unseen(record):
+            self.tiles["unseen_ic"].config(text="none held",
+                                           fg=Palette.warn)
+            self.tiles["unseen_excess"].config(text="-", fg=Palette.warn)
+            self.tiles["same_ic"].config(
+                text=f"{record.get('same_rank_ic', float('nan')):+.4f}")
+            return
+        self.tiles["unseen_ic"].config(
+            text=f"{unseen:+.4f}",
+            fg=Palette.good if unseen > 0 else Palette.bad)
+        self.tiles["unseen_excess"].config(
+            text=f"{excess:+.2f}%",
+            fg=Palette.good if excess > 0 else Palette.bad)
+        self.tiles["same_ic"].config(
+            text=f"{record.get('same_rank_ic', float('nan')):+.4f}")
+
+    def start(self) -> None:
+        import training as training_module
+
+        if self.busy:
+            return
+        self.busy = True
+        self.lines, self.shown = [], 0
+        self.text.delete("1.0", "end")
+        self.run_button.set_enabled(False)
+        self.progress.pack(fill="x", pady=(0, 10))
+        self.progress.start(12)
+        self.verdict.config(text="training...", fg=Palette.muted)
+
+        count = int(self.names.get())
+        self.after(200, self._pump)
+        self.app.worker.submit(
+            lambda: training_module.run(count, on_log=self.lines.append),
+            self._done, self._failed)
+
+    def _pump(self) -> None:
+        while self.shown < len(self.lines):
+            self.text.insert("end", self.lines[self.shown] + "\n")
+            self.shown += 1
+        self.text.see("end")
+        if self.busy:
+            self.after(200, self._pump)
+
+    def _stop(self) -> None:
+        self.busy = False
+        self.run_button.set_enabled(True)
+        self.progress.stop()
+        self.progress.pack_forget()
+        self._pump()
+
+    def _done(self, record: dict) -> None:
+        self._stop()
+        self.refresh()
+        self._show_tiles(record)
+        unseen = record.get("rank_ic", float("nan"))
+        same = record.get("same_rank_ic", float("nan"))
+        if not _has_unseen(record):
+            self.verdict.config(
+                text=f"run {record.get('id', 0)}: trained on the whole roster, "
+                     f"so no names were held back - this one cannot say "
+                     f"anything about unseen stocks. Use fewer names.",
+                fg=Palette.warn)
+            return
+        if unseen > 0 and unseen >= same * 0.5:
+            note = ("held up on names it never saw - one run is not evidence, "
+                    "run several before promoting any of them")
+            colour = Palette.good
+        elif unseen > 0:
+            note = ("positive on unseen names but well below its own trained "
+                    "names - still learning the roster, not the market")
+            colour = Palette.warn
+        else:
+            note = ("no edge on unseen names - do not promote, run again for "
+                    "a different slice and window")
+            colour = Palette.bad
+        self.verdict.config(text=f"run {record.get('id', 0)}: {note}",
+                            fg=colour)
+
+    def _failed(self, error) -> None:
+        self._stop()
+        self.lines.append(f"failed: {error}")
+        self._pump()
+        self.verdict.config(text=f"failed: {error}", fg=Palette.bad)
+
+    def promote(self) -> None:
+        import training as training_module
+
+        if self.busy:
+            return
+        selected = self.tree.selection()
+        if not selected:
+            self.verdict.config(text="Select a run to promote.",
+                                fg=Palette.warn)
+            return
+        run_id = int(selected[0])
+        record = next((r for r in training_module.runs()
+                       if r.get("id") == run_id), None)
+        unseen = record.get("rank_ic", 0.0) if record else 0.0
+        warning = ("" if unseen > 0 else
+                   "\n\nThis run showed no edge on names it never saw.")
+        if not messagebox.askyesno(
+                "Promote",
+                f"Make training run {run_id} the model that Book, Orders and "
+                f"Sim trade?{warning}"):
+            return
+
+        self.busy = True
+        self.promote_button.set_enabled(False)
+        self.app.worker.submit(lambda: training_module.promote(run_id),
+                               self._promoted, self._promote_failed)
+
+    def _promoted(self, problem: str) -> None:
+        self.busy = False
+        self.promote_button.set_enabled(True)
+        if problem:
+            self.verdict.config(text=problem, fg=Palette.bad)
+            return
+        self.verdict.config(
+            text="Promoted. Book, Orders and Sim now score with this fit.",
+            fg=Palette.good)
+
+    def _promote_failed(self, error) -> None:
+        self.busy = False
+        self.promote_button.set_enabled(True)
+        self.verdict.config(text=f"promote failed: {error}", fg=Palette.bad)
