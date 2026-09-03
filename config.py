@@ -185,7 +185,7 @@ def remove_stock(symbol: str) -> tuple[bool, str]:
 # Keep in step with MyAppVersion in installer.iss - the update check compares
 # this string against the newest GitHub release, so a build that ships with a
 # stale number here announces an update to itself.
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 # owner/repo, e.g. "hariom/mnt". Empty means no update check runs at all and
 # the Update button never appears - which is the correct behaviour until a
@@ -239,7 +239,7 @@ SEED = 7
 # the override is remembered in artifacts/ui.json, but nothing about choosing a
 # different model in the interface changes which one won on fourteen folds -
 # switching is an experiment the operator is running, not a new default.
-GBM_PRESETS = (30, 60, 100, 360)
+GBM_PRESETS = (30, 60, 100, 120, 360)
 SIGNALS = (("lightgbm",) + tuple(f"gbm{n}" for n in GBM_PRESETS)
            + ("nn", "tabpfn"))
 DEFAULT_SIGNAL = "lightgbm"
