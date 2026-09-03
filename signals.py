@@ -250,7 +250,7 @@ def build(name: str, **kwargs):
                                if k in ("epochs", "seed", "hidden", "dropout",
                                         "learning_rate", "patience",
                                         "weight_decay", "columns")})
-    if name == "lightgbm":
+    if name == "lightgbm" or name.startswith("gbm"):
         return BoostedSignal(**{k: v for k, v in kwargs.items()
                                 if k in ("seed", "rounds", "columns")})
     if name == "tabpfn":

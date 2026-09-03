@@ -239,7 +239,9 @@ SEED = 7
 # the override is remembered in artifacts/ui.json, but nothing about choosing a
 # different model in the interface changes which one won on fourteen folds -
 # switching is an experiment the operator is running, not a new default.
-SIGNALS = ("lightgbm", "nn", "tabpfn")
+GBM_PRESETS = (30, 60, 100, 360)
+SIGNALS = (("lightgbm",) + tuple(f"gbm{n}" for n in GBM_PRESETS)
+           + ("nn", "tabpfn"))
 DEFAULT_SIGNAL = "lightgbm"
 
 

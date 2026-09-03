@@ -115,6 +115,29 @@ def fit_window(symbols, signal_name: str | None = None, panel=None,
                     panel, start, end)
 
 
+def preset_size(name: str | None):
+    if not name or not name.startswith("gbm"):
+        return None
+    tail = name[3:]
+    return int(tail) if tail.isdigit() else None
+
+
+def liquid_names(size: int) -> list[str]:
+    import data as data_module
+
+    roster = list(config.UNIVERSE)
+    if size >= len(roster):
+        return roster
+    frames = data_module.load(roster, interval="1d", start=config.START)
+    ranked = []
+    for symbol, bars in frames.items():
+        turnover = (bars["close"] * bars["volume"]).tail(250).mean()
+        if pd.notna(turnover):
+            ranked.append((float(turnover), symbol))
+    ranked.sort(reverse=True)
+    return sorted(symbol for _, symbol in ranked[:size])
+
+
 def fit(signal_name: str | None = None, quiet: bool = False,
         subsets: bool = False, size: int = SUBSET_SIZE,
         members: int = SUBSET_MEMBERS):
@@ -134,6 +157,15 @@ def fit(signal_name: str | None = None, quiet: bool = False,
     """
     signal_name = signal_name or config.PRODUCTION_SIGNAL
     names = list(config.UNIVERSE)
+
+    size = preset_size(signal_name)
+    if size is not None:
+        chosen = liquid_names(size)
+        if not quiet:
+            print(f"{signal_name}: fitting on {len(chosen)} of "
+                  f"{len(names)} names by turnover")
+        return _fit_one(None if len(chosen) >= len(names) else chosen,
+                        signal_name, quiet)
 
     if not subsets or len(names) < size * 2:
         return _fit_one(None, signal_name, quiet)

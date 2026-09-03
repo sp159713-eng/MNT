@@ -1543,6 +1543,18 @@ class SettingsPage(Page):
         self.refit_button = Button(row, "Refit now", self.refit, kind="ghost")
         self.refit_button.pack(side="right")
 
+        preset_row = tk.Frame(model_card.body, bg=Palette.panel)
+        preset_row.pack(fill="x", pady=(10, 0))
+        tk.Label(preset_row, text="Trained on", bg=Palette.panel,
+                 fg=Palette.text, font=self.f["body"], width=16,
+                 anchor="w").pack(side="left")
+        for count in getattr(self.app.settings, "GBM_PRESETS", ()):
+            preset = f"gbm{count}"
+            button = Button(preset_row, f"GBM {count}",
+                            lambda n=preset: self.set_signal(n), kind="ghost")
+            button.pack(side="left", padx=(0, 8))
+            self.signal_buttons[preset] = button
+
         self.signal_note = tk.Label(
             model_card.body, text="", bg=Palette.panel, fg=Palette.muted,
             font=self.f["small"], anchor="w", justify="left", wraplength=820)
