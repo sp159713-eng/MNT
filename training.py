@@ -129,7 +129,7 @@ def run(names: int = NAMES, seed: int | None = None,
     log(f"score on {len(held)} other names: " + ", ".join(held))
 
     panel = features_module.cross_sectionalize(
-        features_module.build_panel(chosen))
+        features_module.universe_panel(chosen))
     dates = np.sort(panel["timestamp"].unique())
     log(f"panel {len(panel):,} rows, {len(dates):,} sessions")
 
@@ -157,7 +157,7 @@ def run(names: int = NAMES, seed: int | None = None,
     unseen = None
     if held:
         held_panel = features_module.cross_sectionalize(
-            features_module.build_panel(held))
+            features_module.universe_panel(held))
         unseen = _score(signal, held_panel, after, top_k, every)
 
     os.makedirs(DIR, exist_ok=True)

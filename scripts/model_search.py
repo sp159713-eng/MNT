@@ -123,7 +123,7 @@ def one_draw(seed, want_nn, log, only_nn=False):
     held = sorted(rng.sample(rest, min(HELD_NAMES, len(rest))))
 
     panel = features_module.cross_sectionalize(
-        features_module.build_panel(chosen))
+        features_module.universe_panel(chosen))
     dates = np.sort(panel["timestamp"].unique())
     window = training_module._window(dates, rng)
     if window is None:
@@ -131,7 +131,7 @@ def one_draw(seed, want_nn, log, only_nn=False):
         return 0
     start, end, end_index, _ = window
     held_panel = features_module.cross_sectionalize(
-        features_module.build_panel(held))
+        features_module.universe_panel(held))
     after = pd.Timestamp(dates[end_index + int(config.TARGET_HORIZON)])
 
     top_k = int(config.TOP_K)

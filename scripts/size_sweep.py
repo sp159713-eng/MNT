@@ -52,7 +52,7 @@ def one_draw(seed, sizes, log):
     held = sorted(pool[:HELD_NAMES])
     train_pool = pool[HELD_NAMES:]
 
-    raw = features_module.build_panel(train_pool)
+    raw = features_module.universe_panel(train_pool)
     dates = np.sort(features_module.cross_sectionalize(raw)["timestamp"]
                     .unique())
     window = training_module._window(dates, rng)
@@ -62,7 +62,7 @@ def one_draw(seed, sizes, log):
     start, end, end_index, _ = window
 
     held_panel = features_module.cross_sectionalize(
-        features_module.build_panel(held))
+        features_module.universe_panel(held))
     after = pd.Timestamp(dates[end_index + int(config.TARGET_HORIZON)])
     top_k = int(config.TOP_K)
     every = max(int(config.REBALANCE_EVERY), 1)

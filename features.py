@@ -266,6 +266,20 @@ def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
     return panel.sort_values(["timestamp", "symbol"]).reset_index(drop=True)
 
 
+_CACHED_PANEL = None
+
+
+def universe_panel(symbols: list[str] | None = None) -> pd.DataFrame:
+    global _CACHED_PANEL
+    if _CACHED_PANEL is None:
+        _CACHED_PANEL = build_panel()
+    if symbols is None:
+        return _CACHED_PANEL
+    wanted = set(symbols)
+    return _CACHED_PANEL[_CACHED_PANEL["symbol"].isin(wanted)].reset_index(
+        drop=True)
+
+
 def cross_sectionalize(panel: pd.DataFrame,
                        require_target: bool = True) -> pd.DataFrame:
     """Rank every feature within its date; centre the target within its date.
