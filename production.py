@@ -223,7 +223,7 @@ def load():
         raise SystemExit(
             f"production model on disk is '{saved_name}', but the configured "
             f"signal is '{wanted}'. Refit before trading it: "
-            f"py -3.13 production.py")
+            f"Settings > Refit now, or py -3.13 production.py")
 
     # A model fitted on a different feature set will score nonsense rather than
     # fail, so the mismatch is caught here instead of showing up as a strange
