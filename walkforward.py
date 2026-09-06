@@ -50,6 +50,7 @@ import costs as costs_module
 import features as features_module
 import metrics as metrics_module
 import runs as runs_module
+import production as production_module
 import signals as signals_module
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -148,7 +149,7 @@ def main() -> None:
                         default="delivery")
     parser.add_argument("--epochs", type=int, default=60)
     parser.add_argument("--signal", default=config.PRODUCTION_SIGNAL,
-                        choices=("nn", "lightgbm", "tabpfn"),
+                        choices=tuple(config.SIGNALS),
                         help="which model generates the ranking; defaults to "
                              "whatever production trades")
     parser.add_argument("--max-context", type=int, default=8000,
@@ -176,7 +177,11 @@ def main() -> None:
                else features_module.CORE_COLUMNS)
 
     horizon = config.TARGET_HORIZON
-    panel = features_module.cross_sectionalize(features_module.build_panel())
+    roster = production_module.roster_for(args.signal)
+    if roster:
+        print(f"{args.signal}: {len(roster)} names")
+    panel = features_module.cross_sectionalize(
+        features_module.build_panel(roster))
 
     # In fast mode the trailing average moves from the predictions to the
     # features, and every date the book never consults is dropped. Both are

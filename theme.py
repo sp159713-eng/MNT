@@ -399,6 +399,63 @@ class Chart(tk.Canvas):
         self._render = render
         self._redraw()
 
+    def lines(self, series_map: list, labels: list[str] | None = None,
+              best: str | None = None,
+              formatter=lambda v: f"{v:,.0f}",
+              baseline: float | None = None) -> None:
+
+        def render():
+            drawable = [(name, values) for name, values in series_map
+                        if len(values) >= 2]
+            if not drawable:
+                self.create_text(self.winfo_width() / 2,
+                                 self.winfo_height() / 2,
+                                 text="not enough data", fill=Palette.muted,
+                                 font=self.fonts["small"])
+                return
+
+            every = [v for _, values in drawable for v in values]
+            lo, hi = min(every), max(every)
+            if baseline is not None:
+                lo, hi = min(lo, baseline), max(hi, baseline)
+            span = (hi - lo) or 1.0
+            lo, hi = lo - span * 0.08, hi + span * 0.08
+            self._frame(lo, hi, formatter=formatter)
+
+            x0, y0, x1, y1 = self._plot_area()
+
+            if baseline is not None:
+                y = y1 - (baseline - lo) / (hi - lo) * (y1 - y0)
+                self.create_line(x0, y, x1, y, fill=Palette.muted, dash=(3, 3))
+
+            for name, values in drawable:
+                step = (x1 - x0) / (len(values) - 1)
+                points = [(x0 + i * step,
+                           y1 - (v - lo) / (hi - lo) * (y1 - y0))
+                          for i, v in enumerate(values)]
+                winner = name == best
+                self.create_line(
+                    [c for pair in points for c in pair],
+                    fill=Palette.good if winner else Palette.faint,
+                    width=2.6 if winner else 1.4, smooth=False)
+                self.create_text(
+                    points[-1][0] - 4, points[-1][1] - 9, text=name,
+                    anchor="e",
+                    fill=Palette.good if winner else Palette.muted,
+                    font=self.fonts["mono_small"])
+
+            if labels:
+                longest = max(drawable, key=lambda item: len(item[1]))[1]
+                step = (x1 - x0) / (len(longest) - 1)
+                for index in (0, len(labels) - 1):
+                    self.create_text(x0 + index * step, y1 + 13,
+                                     text=labels[index], fill=Palette.muted,
+                                     font=self.fonts["mono_small"],
+                                     anchor="w" if index == 0 else "e")
+
+        self._render = render
+        self._redraw()
+
     def bars(self, values: list[float], labels: list[str],
              formatter=lambda v: f"{v:,.0f}", threshold: float | None = None
              ) -> None:

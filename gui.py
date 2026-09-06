@@ -330,21 +330,12 @@ class BacktestPage(Page):
 
         import config as config_module
 
-        # Only what can actually run. A packaged build excludes torch and
-        # tabpfn (see MNT.spec), and offering a choice that raises
-        # ModuleNotFoundError several minutes into a walk-forward is worse than
-        # not offering it. From source, where both import, all three show.
-        import importlib.util
-
-        available = ["lightgbm"]
-        for name, module in (("nn", "torch"), ("tabpfn", "tabpfn")):
-            if importlib.util.find_spec(module) is not None:
-                available.append(name)
-
-        self.signal = tk.StringVar(value=config_module.PRODUCTION_SIGNAL)
-        combo = ttk.Combobox(top, textvariable=self.signal, width=10,
-                             state="readonly", values=tuple(available))
-        combo.pack(side="right", padx=(10, 0))
+        self.presets = [f"gbm{n}" for n in
+                        getattr(config_module, "GBM_PRESETS", ())]
+        tk.Label(top, text="  ".join(n.replace("gbm", "GBM ")
+                                     for n in self.presets),
+                 bg=Palette.bg, fg=Palette.faint,
+                 font=self.f["mono_small"]).pack(side="right", padx=(10, 0))
         self.fast = tk.BooleanVar(value=False)
         # ttk, not tk: tk.Checkbutton draws its indicator natively and ignored
         # the palette, leaving a white Windows box in both schemes.
@@ -384,20 +375,22 @@ class BacktestPage(Page):
         self.progress.start(12)
         self.log.delete("1.0", "end")
 
-        if getattr(sys, "frozen", False):
-            command = [sys.executable, "--walkforward",
-                       "--signal", self.signal.get()]
-        else:
-            command = [sys.executable, "-u", "walkforward.py",
-                       "--signal", self.signal.get()]
-        if self.fast.get():
-            command += ["--fast", "--max-context", "1000"]
+        fast = self.fast.get()
+        names = list(self.presets)
 
-        def work():
+        def one(name):
+            if getattr(sys, "frozen", False):
+                command = [sys.executable, "--walkforward", "--signal", name]
+            else:
+                command = [sys.executable, "-u", "walkforward.py",
+                           "--signal", name]
+            if fast:
+                command += ["--fast", "--max-context", "1000"]
             environment = dict(os.environ, PYTHONUNBUFFERED="1")
             process = subprocess.Popen(
                 command, cwd=RUN_DIR, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, text=True, bufsize=1, env=environment,
+                stderr=subprocess.STDOUT, text=True, bufsize=1,
+                env=environment,
                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
             lines = []
             for line in process.stdout:
@@ -406,40 +399,58 @@ class BacktestPage(Page):
             process.wait()
             return lines
 
+        def work():
+            results = {}
+            for index, name in enumerate(names, start=1):
+                header = ("\n===== " + name + f"  ({index} of "
+                          f"{len(names)}) =====\n")
+                self.app.worker.queue.put((self._append, header))
+                results[name] = one(name)
+            return results
+
         self.app.worker.submit(work, self._finished, self._failed)
 
     def _append(self, line: str) -> None:
         self.log.insert("end", line)
         self.log.see("end")
 
-    def _finished(self, lines) -> None:
+    def _finished(self, results) -> None:
         self.run_button.set_enabled(True)
         self.progress.stop()
         self.progress.pack_forget()
 
-        # Pull the per-year excess column out of the table the script printed,
-        # rather than recomputing it here - one source of truth.
-        years, values, accs = [], [], []
-        edge_text = "-"
+        series, means, labels = [], {}, []
+        for name, lines in results.items():
+            years, values = self._parse(lines)
+            if not values:
+                continue
+            shown = name.replace("gbm", "GBM ")
+            series.append((shown, values))
+            means[shown] = sum(values) / len(values)
+            if len(years) > len(labels):
+                labels = years
+
+        if not series:
+            self.scores.configure(text="no results")
+            return
+
+        best = max(means, key=means.get)
+        self.chart.lines(series, labels, best=best, baseline=0.0)
+        ranked = "   ".join(f"{n} {means[n]:+.0f}"
+                            for n in sorted(means, key=means.get, reverse=True))
+        self.scores.configure(text=f"best {best}    {ranked}")
+
+    @staticmethod
+    def _parse(lines):
+        years, values = [], []
         for line in lines:
             parts = line.split()
-            if parts[:1] == ["EDGE"]:
-                edge_text = " ".join(parts[1:3])
-                if "'" in line:
-                    edge_text += " vs " + line.split("'")[1]
-                continue
             if len(parts) >= 6 and parts[0].isdigit() and len(parts[0]) == 4:
                 excess = [t for t in parts if _RE_BP.match(t)]
-                acc = [t for t in parts if _RE_ACC.match(t)]
                 if excess:
                     years.append(parts[0][2:])
                     values.append(float(excess[0]))
-                if acc:
-                    accs.append(float(acc[-1]))
-        if values:
-            self.chart.bars(values, years, formatter=lambda v: f"{v:,.0f}")
-        mean_acc = f"{sum(accs) / len(accs):+.3f}" if accs else "-"
-        self.scores.configure(text=f"edge {edge_text}    acc {mean_acc}")
+        return years, values
 
     def _failed(self, error) -> None:
         self.run_button.set_enabled(True)

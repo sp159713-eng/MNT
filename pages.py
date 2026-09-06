@@ -1548,9 +1548,11 @@ class SettingsPage(Page):
         tk.Label(preset_row, text="Trained on", bg=Palette.panel,
                  fg=Palette.text, font=self.f["body"], width=16,
                  anchor="w").pack(side="left")
-        for count in getattr(self.app.settings, "GBM_PRESETS", ()):
-            preset = f"gbm{count}"
-            button = Button(preset_row, f"GBM {count}",
+        options = [(f"gbm{c}", f"GBM {c}")
+                   for c in getattr(self.app.settings, "GBM_PRESETS", ())]
+        options.append(("gbmall", "Untrained"))
+        for preset, label in options:
+            button = Button(preset_row, label,
                             lambda n=preset: self.set_signal(n), kind="ghost")
             button.pack(side="left", padx=(0, 8))
             self.signal_buttons[preset] = button

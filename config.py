@@ -241,7 +241,7 @@ SEED = 7
 # switching is an experiment the operator is running, not a new default.
 GBM_PRESETS = (30, 60, 100, 120, 360)
 SIGNALS = (("lightgbm",) + tuple(f"gbm{n}" for n in GBM_PRESETS)
-           + ("nn", "tabpfn"))
+           + ("gbmall", "nn", "tabpfn"))
 DEFAULT_SIGNAL = "lightgbm"
 
 

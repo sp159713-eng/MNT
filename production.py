@@ -138,6 +138,13 @@ def liquid_names(size: int) -> list[str]:
     return sorted(symbol for _, symbol in ranked[:size])
 
 
+def roster_for(name: str | None):
+    if name == "gbmall":
+        return sorted(set(list(config.UNIVERSE) + list(config.WATCHLIST)))
+    size = preset_size(name)
+    return liquid_names(size) if size is not None else None
+
+
 def fit(signal_name: str | None = None, quiet: bool = False,
         subsets: bool = False, size: int = SUBSET_SIZE,
         members: int = SUBSET_MEMBERS):
@@ -158,14 +165,11 @@ def fit(signal_name: str | None = None, quiet: bool = False,
     signal_name = signal_name or config.PRODUCTION_SIGNAL
     names = list(config.UNIVERSE)
 
-    size = preset_size(signal_name)
-    if size is not None:
-        chosen = liquid_names(size)
+    chosen = roster_for(signal_name)
+    if chosen is not None:
         if not quiet:
-            print(f"{signal_name}: fitting on {len(chosen)} of "
-                  f"{len(names)} names by turnover")
-        return _fit_one(None if len(chosen) >= len(names) else chosen,
-                        signal_name, quiet)
+            print(f"{signal_name}: fitting on {len(chosen)} names")
+        return _fit_one(chosen, signal_name, quiet)
 
     if not subsets or len(names) < size * 2:
         return _fit_one(None, signal_name, quiet)
