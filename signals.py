@@ -243,6 +243,94 @@ class BoostedSignal:
             panel[self.columns].to_numpy(dtype=np.float32))
 
 
+_XGB_DEVICE = None
+
+
+def _detect_xgb_device() -> str:
+    """CUDA if XGBoost can actually use it, CPU otherwise - checked once.
+
+    A "cuda" request that has no GPU behind it does not raise; XGBoost warns
+    and silently trains on CPU instead. Asking for a device and getting a
+    different one back is exactly the kind of thing that should not be
+    discovered from a training-time comparison, so the probe fit's own
+    warnings are read rather than trusting the request.
+    """
+    global _XGB_DEVICE
+    if _XGB_DEVICE is not None:
+        return _XGB_DEVICE
+    override = os.environ.get("MNT_XGB_DEVICE")
+    if override:
+        _XGB_DEVICE = override
+        return _XGB_DEVICE
+    try:
+        import warnings
+
+        import xgboost as xgb
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            probe = xgb.XGBRegressor(tree_method="hist", device="cuda",
+                                     n_estimators=1)
+            probe.fit(np.zeros((4, 1), dtype=np.float32),
+                     np.zeros(4, dtype=np.float32))
+        fell_back = any("to CPU" in str(w.message) for w in caught)
+        _XGB_DEVICE = "cpu" if fell_back else "cuda"
+    except Exception:
+        _XGB_DEVICE = "cpu"
+    return _XGB_DEVICE
+
+
+class XGBoostSignal:
+    """XGBoost on the identical target, as the GPU-capable alternative to
+    BoostedSignal. Same columns, same rank label, same validation early
+    stopping - only the estimator and the device it runs on differ.
+    """
+
+    name = "xgboost"
+
+    def __init__(self, seed: int = config.GBM_SEED, columns=None,
+                 device: str | None = None, **overrides):
+        self.seed = seed
+        self.overrides = overrides
+        self.columns = list(columns) if columns else list(
+            features_module.MODEL_COLUMNS)
+        self.device = device
+        self.model = None
+
+    def fit(self, train_panel: pd.DataFrame, val_panel: pd.DataFrame) -> None:
+        import xgboost as xgb
+
+        columns = self.columns
+        device = self.device or _detect_xgb_device()
+        self.model = xgb.XGBRegressor(
+            learning_rate=config.GBM_LEARNING_RATE,
+            n_estimators=config.GBM_N_ESTIMATORS,
+            max_depth=config.GBM_MAX_DEPTH,
+            min_child_weight=config.GBM_MIN_CHILD_SAMPLES,
+            subsample=config.GBM_SUBSAMPLE,
+            colsample_bytree=config.GBM_COLSAMPLE,
+            reg_lambda=config.GBM_REG_LAMBDA,
+            random_state=self.seed,
+            tree_method="hist",
+            objective="reg:squarederror",
+            device=device,
+            early_stopping_rounds=config.GBM_EARLY_STOPPING_ROUNDS,
+            eval_metric="rmse",
+            **self.overrides)
+        self.model.fit(
+            train_panel[columns].to_numpy(dtype=np.float32),
+            metrics_module.rank_target(train_panel),
+            eval_set=[(val_panel[columns].to_numpy(dtype=np.float32),
+                      metrics_module.rank_target(val_panel))],
+            verbose=False)
+
+    def predict(self, panel: pd.DataFrame) -> np.ndarray:
+        if self.model is None:
+            raise RuntimeError("fit first")
+        return self.model.predict(
+            panel[self.columns].to_numpy(dtype=np.float32))
+
+
 def build(name: str, **kwargs):
     """Factory. `name` is one of the keys below."""
     if name == "nn":
@@ -253,6 +341,9 @@ def build(name: str, **kwargs):
     if name == "lightgbm" or name.startswith("gbm"):
         return BoostedSignal(**{k: v for k, v in kwargs.items()
                                 if k in ("seed", "rounds", "columns")})
+    if name == "xgboost" or name.startswith("xgb"):
+        return XGBoostSignal(**{k: v for k, v in kwargs.items()
+                                if k in ("seed", "columns", "device")})
     if name == "tabpfn":
         return TabPFNSignal(**{k: v for k, v in kwargs.items()
                                if k in ("max_context", "seed", "device",
