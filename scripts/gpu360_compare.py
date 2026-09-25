@@ -63,9 +63,15 @@ def main() -> None:
     jsonl_path = os.path.join(args.out_dir, "gpu360_compare.jsonl")
 
     draws = []
-    with open(jsonl_path, "w", encoding="utf-8", newline="\n") as handle:
+    if os.path.exists(jsonl_path):
+        with open(jsonl_path, encoding="utf-8") as handle:
+            draws = [json.loads(line) for line in handle if line.strip()]
+    done = {d["seed"] for d in draws}
+    with open(jsonl_path, "a", encoding="utf-8", newline="\n") as handle:
         for i in range(args.draws):
             seed = args.seeds_from + i
+            if seed in done:
+                continue
             print(f"draw {i + 1}/{args.draws}  seed {seed}")
             record = _run_pair(args.names, seed)
             draws.append(record)
