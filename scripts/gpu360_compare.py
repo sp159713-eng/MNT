@@ -14,6 +14,31 @@ import training as training_module
 import joblib
 
 
+def _cache_panels() -> None:
+    build, sectionalize = features_module.universe_panel, features_module.cross_sectionalize
+    built, done = {}, {}
+
+    def universe_panel(names, *a, **k):
+        key = (None if names is None else tuple(names), a, tuple(sorted(k.items())))
+        if key not in built:
+            if len(built) >= 4:
+                built.clear()
+                done.clear()
+            built[key] = build(names, *a, **k)
+        return built[key]
+
+    def cross_sectionalize(frame, *a, **k):
+        if not any(frame is kept for kept in built.values()):
+            return sectionalize(frame, *a, **k)
+        key = id(frame)
+        if key not in done:
+            done[key] = sectionalize(frame, *a, **k)
+        return done[key]
+
+    features_module.universe_panel = universe_panel
+    features_module.cross_sectionalize = cross_sectionalize
+
+
 def _run_pair(names, seed):
     began = time.time()
     lgb = training_module.run(names, seed, "lightgbm")
@@ -53,13 +78,15 @@ def _summarize(draws, key):
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--draws", type=int, default=40)
-    parser.add_argument("--names", type=int, default=330)
+    parser.add_argument("--names", type=int, default=120)
+    parser.add_argument("--final-names", type=int, default=120)
     parser.add_argument("--seeds-from", type=int, default=1)
     parser.add_argument("--out-dir",
                         default=os.path.join(config.MODEL_DIR, "gpu360"))
     args = parser.parse_args()
 
     os.makedirs(args.out_dir, exist_ok=True)
+    _cache_panels()
     jsonl_path = os.path.join(args.out_dir, "gpu360_compare.jsonl")
 
     draws = []
@@ -97,17 +124,20 @@ def main() -> None:
           f"wins {excess['wins']}/{excess['total']}")
 
     print()
-    print("fitting XGB-360 on the full universe, full history...")
+    label = f"XGB-{args.final_names}"
+    final_names = production_module.liquid_names(args.final_names)
+    print(f"fitting {label} on the {len(final_names)} most liquid names, full history...")
     began = time.time()
-    signal, _ = production_module.fit_window(None, "xgboost", quiet=False)
+    signal, _ = production_module.fit_window(final_names, "xgboost", quiet=False)
     fit_seconds = time.time() - began
     print(f"fitted in {fit_seconds:.1f}s")
 
-    out_path = os.path.join(args.out_dir, "xgb360.joblib")
+    out_path = os.path.join(args.out_dir, f"xgb{args.final_names}.joblib")
     joblib.dump({"signal": signal, "name": "xgboost",
                  "features": list(getattr(signal, "columns",
                                           features_module.MODEL_COLUMNS)),
-                 "horizon": int(config.TARGET_HORIZON)}, out_path)
+                 "horizon": int(config.TARGET_HORIZON),
+                 "names": final_names}, out_path)
     print(f"saved {out_path}")
 
 
