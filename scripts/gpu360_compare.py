@@ -97,13 +97,13 @@ def main() -> None:
           f"wins {excess['wins']}/{excess['total']}")
 
     print()
-    print("fitting GBM-GPU360 on the full universe, full history...")
+    print("fitting XGB-360 on the full universe, full history...")
     began = time.time()
     signal, _ = production_module.fit_window(None, "xgboost", quiet=False)
     fit_seconds = time.time() - began
     print(f"fitted in {fit_seconds:.1f}s")
 
-    out_path = os.path.join(args.out_dir, "gbm_gpu360.joblib")
+    out_path = os.path.join(args.out_dir, "xgb360.joblib")
     joblib.dump({"signal": signal, "name": "xgboost",
                  "features": list(getattr(signal, "columns",
                                           features_module.MODEL_COLUMNS)),
