@@ -120,16 +120,27 @@ class NeuralSignal:
         return model_module.predict(self.net, panel, self.columns)
 
 
+def _torch_device() -> str:
+    override = os.environ.get("MNT_TORCH_DEVICE")
+    if override:
+        return override
+    try:
+        import torch
+        return "cuda" if torch.cuda.is_available() else "cpu"
+    except ImportError:
+        return "cpu"
+
+
 class TabPFNSignal:
     """TabPFN-2.5 as an in-context ranker. No training loop, no gradients."""
 
     name = "tabpfn"
 
     def __init__(self, max_context: int = 8000, seed: int = config.SEED,
-                 device: str = "cpu", chunk: int = 4000, columns=None):
+                 device: str | None = None, chunk: int = 4000, columns=None):
         self.max_context = max_context
         self.seed = seed
-        self.device = device
+        self.device = device or _torch_device()
         self.chunk = chunk
         self.columns = list(columns) if columns else list(
             features_module.MODEL_COLUMNS)
