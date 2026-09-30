@@ -189,7 +189,7 @@ def fit(signal_name: str | None = None, quiet: bool = False,
     return SubsetEnsemble(fitted), panel
 
 
-def save(signal, signal_name: str | None = None) -> str:
+def save(signal, signal_name: str | None = None, path: str | None = None) -> str:
     """Store the fit, stamped with what it actually is.
 
     The feature list is the signal's OWN columns, not MODEL_COLUMNS. Those were
@@ -198,21 +198,23 @@ def save(signal, signal_name: str | None = None) -> str:
     the saved model was never fitted on - turning the guard in load() into a
     check that passes precisely when it should not.
     """
-    os.makedirs(config.MODEL_DIR, exist_ok=True)
+    target = path or PATH
+    os.makedirs(os.path.dirname(target), exist_ok=True)
     joblib.dump({"signal": signal,
                  "name": signal_name or config.PRODUCTION_SIGNAL,
                  "features": list(getattr(signal, "columns",
                                           features_module.MODEL_COLUMNS)),
-                 "horizon": config.TARGET_HORIZON}, PATH)
-    return PATH
+                 "horizon": config.TARGET_HORIZON}, target)
+    return target
 
 
-def load():
+def load(path: str | None = None, expect_name: str | None = None):
     """The saved production signal, or a clear instruction if there is none."""
-    if not os.path.exists(PATH):
-        raise SystemExit(f"no production model at {PATH} - "
+    source = path or PATH
+    if not os.path.exists(source):
+        raise SystemExit(f"no production model at {source} - "
                          f"run: py -3.13 production.py")
-    bundle = joblib.load(PATH)
+    bundle = joblib.load(source)
 
     # Which model this is, before what it was fitted on. Since the signal is
     # selectable, the stored fit and config.PRODUCTION_SIGNAL can disagree -
@@ -222,7 +224,7 @@ def load():
     # one failure here that could reach a trading decision, so it is refused
     # rather than warned about.
     saved_name = bundle.get("name")
-    wanted = config.PRODUCTION_SIGNAL
+    wanted = expect_name or config.PRODUCTION_SIGNAL
     if saved_name and saved_name != wanted:
         raise SystemExit(
             f"production model on disk is '{saved_name}', but the configured "

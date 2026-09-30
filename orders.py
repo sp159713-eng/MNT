@@ -208,11 +208,12 @@ def _sent_key(day: str, order: dict) -> tuple:
     return (day, order["symbol"], order["side"], int(order["qty"]))
 
 
-def _load_sent() -> list[dict]:
-    if not os.path.exists(SENT_LOG_PATH):
+def _load_sent(sent_log: str | None = None) -> list[dict]:
+    sent_log = sent_log or SENT_LOG_PATH
+    if not os.path.exists(sent_log):
         return []
     rows = []
-    with open(SENT_LOG_PATH, encoding="utf-8") as handle:
+    with open(sent_log, encoding="utf-8") as handle:
         for line in handle:
             line = line.strip()
             if not line:
@@ -224,16 +225,16 @@ def _load_sent() -> list[dict]:
     return rows
 
 
-def _already_sent(day: str, order: dict) -> bool:
+def _already_sent(day: str, order: dict, sent_log: str | None = None) -> bool:
     key = _sent_key(day, order)
-    for row in _load_sent():
+    for row in _load_sent(sent_log):
         if (row.get("day"), row.get("symbol"), row.get("side"),
                 row.get("qty")) == key:
             return True
     return False
 
 
-def _record_sent(day: str, order: dict) -> None:
+def _record_sent(day: str, order: dict, sent_log: str | None = None) -> None:
     """Append one ledger row, crash-safe: temp file, flush, fsync, replace.
 
     Same idiom as PaperBroker.save() - a plain append can leave a half-written
@@ -246,22 +247,23 @@ def _record_sent(day: str, order: dict) -> None:
     landing on disk; FIX 1's stable order_reference_id gives Groww's own side
     a chance to recognise a resend even then.
     """
-    rows = _load_sent()
+    sent_log = sent_log or SENT_LOG_PATH
+    rows = _load_sent(sent_log)
     rows.append({"day": day, "symbol": order["symbol"], "side": order["side"],
                 "qty": int(order["qty"]),
                 "time": broker_module.now_ist().isoformat(timespec="seconds")})
-    os.makedirs(os.path.dirname(SENT_LOG_PATH), exist_ok=True)
-    temporary = f"{SENT_LOG_PATH}.{os.getpid()}.tmp"
+    os.makedirs(os.path.dirname(sent_log), exist_ok=True)
+    temporary = f"{sent_log}.{os.getpid()}.tmp"
     with open(temporary, "w", encoding="utf-8") as handle:
         for row in rows:
             handle.write(json.dumps(row) + "\n")
         handle.flush()
         os.fsync(handle.fileno())
-    os.replace(temporary, SENT_LOG_PATH)
+    os.replace(temporary, sent_log)
 
 
-def execute(orders: list[dict], venue=None, confirm_live: bool = False
-            ) -> list[dict]:
+def execute(orders: list[dict], venue=None, confirm_live: bool = False,
+            sent_log: str | None = None) -> list[dict]:
     """Place the orders. The only function here that changes anything.
 
     Live venues pass through two independent gates, and both must open:
@@ -307,7 +309,7 @@ def execute(orders: list[dict], venue=None, confirm_live: bool = False
     results = []
     for order in orders:
         try:
-            if is_live and _already_sent(day, order):
+            if is_live and _already_sent(day, order, sent_log):
                 # Same (day, symbol, side, qty) already reached the venue.
                 # Likely a crash-and-rerun recomputing the same delta because
                 # holdings() has not caught up yet (Groww CNC settles T+1) -
@@ -340,7 +342,7 @@ def execute(orders: list[dict], venue=None, confirm_live: bool = False
                 # anything else, so a resend attempt after this point (even a
                 # crash right here) is recognised as a repeat regardless of
                 # how the fill below is ultimately classified.
-                _record_sent(day, order)
+                _record_sent(day, order, sent_log)
 
             results.append(fill)
             if is_live:
