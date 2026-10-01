@@ -164,6 +164,9 @@ def main() -> None:
                         default="model",
                         help="which feature set the signal trains on")
     parser.add_argument("--hidden", type=int, default=None)
+    parser.add_argument("--recent-first", action="store_true")
+    parser.add_argument("--cut-after", type=int, default=None)
+    parser.add_argument("--cut-below", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=None,
                         help="override the signal's own default seed; omitted "
                              "leaves each signal on its config.py default")
@@ -207,6 +210,9 @@ def main() -> None:
         signal_kwargs["hidden"] = args.hidden
 
     folds = fold_dates(panel, args.start_year, horizon)
+    if args.recent_first:
+        folds = folds[::-1]
+    args.cut_triggered = False
     print(f"\n{len(folds)} folds, signal '{args.signal}'"
           f"{', fast mode' if args.fast else ''}\n")
 
@@ -288,6 +294,16 @@ def main() -> None:
                                        args.segment)
             if not part.empty:
                 baseline_books.setdefault(name, []).append(part)
+
+        if (args.cut_after and len(fold_records) >= args.cut_after
+                and np.mean([r["stats"]["net_excess_bp"] for r in fold_records])
+                < args.cut_below):
+            args.cut_triggered = True
+            print(f"\nCUT after {len(fold_records)} folds: mean excess below "
+                  f"{args.cut_below:+.0f} bp", flush=True)
+            break
+
+    fold_records.sort(key=lambda record: record["test_year"])
 
     if not collected:
         raise SystemExit("no folds produced a book")

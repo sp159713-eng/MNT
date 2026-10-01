@@ -101,6 +101,11 @@ def settings(args) -> dict:
         "fast": bool(args.fast),
         "feature_smooth": args.feature_smooth,
         "columns": getattr(args, "columns", "model"),
+        "hidden": getattr(args, "hidden", None),
+        "recent_first": bool(getattr(args, "recent_first", False)),
+        "cut_after": getattr(args, "cut_after", None),
+        "cut_below": getattr(args, "cut_below", 0.0),
+        "cut": bool(getattr(args, "cut_triggered", False)),
         # From config.py, where they are just as capable of moving the answer.
         # top_k and hold_buffer are the FALLBACK pair only: walk-forward picks
         # both per fold on that fold's validation year, so these two describe
