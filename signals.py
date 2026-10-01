@@ -90,7 +90,7 @@ class NeuralSignal:
     def __init__(self, epochs=None, seed: int = config.SEED, hidden=None,
                  dropout=None, learning_rate=None, patience=None,
                  weight_decay=None, columns=None, layers=None,
-                 activation=None, loss=None):
+                 activation=None, loss=None, minutes=None):
         chosen = config.nn_settings()
         epochs = chosen["epochs"] if epochs is None else epochs
         hidden = chosen["hidden"] if hidden is None else hidden
@@ -103,7 +103,7 @@ class NeuralSignal:
         self.layers = chosen["layers"] if layers is None else layers
         self.activation = chosen["activation"] if activation is None else activation
         self.loss = chosen["loss"] if loss is None else loss
-        self.minutes = chosen["minutes"]
+        self.minutes = chosen["minutes"] if minutes is None else minutes
         self.epochs = epochs
         self.seed = seed
         self.hidden = hidden
@@ -427,7 +427,8 @@ def build(name: str, **kwargs):
         return NeuralSignal(**{k: v for k, v in kwargs.items()
                                if k in ("epochs", "seed", "hidden", "dropout",
                                         "learning_rate", "patience",
-                                        "weight_decay", "columns")})
+                                        "weight_decay", "columns",
+                                        "minutes")})
     if name == "lightgbm" or name.startswith("gbm"):
         return BoostedSignal(**{k: v for k, v in kwargs.items()
                                 if k in ("seed", "rounds", "columns")})

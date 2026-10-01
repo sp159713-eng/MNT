@@ -147,7 +147,8 @@ def main() -> None:
                         default=costs_module.DEFAULT_SLIPPAGE_BP)
     parser.add_argument("--segment", choices=("delivery", "intraday"),
                         default="delivery")
-    parser.add_argument("--epochs", type=int, default=60)
+    parser.add_argument("--epochs", type=int, default=None)
+    parser.add_argument("--nn-budget", type=float, default=None)
     parser.add_argument("--signal", default=config.PRODUCTION_SIGNAL,
                         type=lambda v: v if (v in config.SIGNALS or v.startswith(("blend:", "xgb", "ens"))) else parser.error(f"invalid signal {v!r}"),
                         help="which model generates the ranking; defaults to "
@@ -207,9 +208,9 @@ def main() -> None:
         panel = features_module.smooth_features(panel, args.feature_smooth)
         windows, every = FAST_WINDOWS, 1
 
-    signal_kwargs = {"epochs": args.epochs,
-                     "max_context": args.max_context,
-                     "columns": columns}
+    signal_kwargs = {"max_context": args.max_context, "columns": columns}
+    if args.epochs is not None:
+        signal_kwargs["epochs"] = args.epochs
     if args.seed is not None:
         signal_kwargs["seed"] = args.seed
     if args.hidden is not None:
@@ -222,6 +223,9 @@ def main() -> None:
               f"pass --final to include them")
     if args.recent_first:
         folds = folds[::-1]
+    if args.nn_budget:
+        signal_kwargs["minutes"] = args.nn_budget / max(1, len(folds))
+        signal_kwargs.setdefault("epochs", 100000)
     args.cut_triggered = False
     print(f"\n{len(folds)} folds, signal '{args.signal}'"
           f"{', fast mode' if args.fast else ''}\n")

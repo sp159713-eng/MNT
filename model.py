@@ -126,6 +126,13 @@ def _corr_loss(prediction, target):
     return -(p * t).sum() / (p.norm() * t.norm() + 1e-8)
 
 
+def _device() -> str:
+    override = os.environ.get("MNT_TORCH_DEVICE")
+    if override:
+        return override
+    return "cuda" if torch.cuda.is_available() else "cpu"
+
+
 def _loss_function(name):
     if name == "huber":
         return nn.HuberLoss(delta=0.5)
@@ -191,13 +198,16 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
     np.random.seed(seed)
 
     columns = list(columns) if columns else features_module.MODEL_COLUMNS
-    x_train = torch.tensor(train_panel[columns].to_numpy(dtype=np.float32))
-    y_train = torch.tensor(rank_target(train_panel))
-    x_val = torch.tensor(val_panel[columns].to_numpy(dtype=np.float32))
+    device = _device()
+    x_train = torch.tensor(train_panel[columns].to_numpy(dtype=np.float32),
+                           device=device)
+    y_train = torch.tensor(rank_target(train_panel), device=device)
+    x_val = torch.tensor(val_panel[columns].to_numpy(dtype=np.float32),
+                         device=device)
     y_val_raw = val_panel["target_excess"].to_numpy()
     val_dates = val_panel["timestamp"].to_numpy()
 
-    model = Ranker(len(columns), hidden, dropout, layers, activation)
+    model = Ranker(len(columns), hidden, dropout, layers, activation).to(device)
     model.columns = columns
     optimiser = torch.optim.AdamW(model.parameters(), lr=learning_rate,
                                   weight_decay=weight_decay)
@@ -211,7 +221,7 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
         if minutes and time.monotonic() - started > minutes * 60:
             break
         model.train()
-        order = torch.randperm(n)
+        order = torch.randperm(n, device=device)
         total = 0.0
         for start in range(0, n, batch_size):
             index = order[start:start + batch_size]
@@ -223,7 +233,7 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
 
         model.eval()
         with torch.no_grad():
-            predictions = model(x_val).numpy()
+            predictions = model(x_val).cpu().numpy()
         ic, t_stat, _ = rank_ic(predictions, y_val_raw, val_dates)
 
         if ic > best_ic:
@@ -244,6 +254,7 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
 
     if best_state is not None:
         model.load_state_dict(best_state)
+    model.to("cpu")
     model.eval()
     return model, {"best_epoch": best_epoch, "best_val_ic": best_ic,
                    "columns": len(columns)}
