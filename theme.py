@@ -494,6 +494,7 @@ class Chart(tk.Canvas):
         self._render = render
         self._redraw()
 
+
     def bars(self, values: list[float], labels: list[str],
              formatter=lambda v: f"{v:,.0f}", threshold: float | None = None
              ) -> None:
@@ -566,9 +567,9 @@ def style_widgets(root: tk.Misc) -> None:
     # Flat, and a shade darker than the rows rather than lighter: a heading is
     # a label for the column, not a raised control to be clicked at.
     style.configure("Treeview.Heading",
-                    background=Palette.inset, foreground=Palette.muted,
+                    background=Palette.panel, foreground=Palette.muted,
                     borderwidth=0, relief="flat", padding=(10, 9),
-                    font=fonts()["label"],
+                    font=fonts()["small"],
                     bordercolor=Palette.inset, lightcolor=Palette.inset,
                     darkcolor=Palette.inset)
     style.map("Treeview.Heading",
