@@ -163,6 +163,7 @@ def main() -> None:
     parser.add_argument("--columns", choices=("model", "core"),
                         default="model",
                         help="which feature set the signal trains on")
+    parser.add_argument("--hidden", type=int, default=None)
     parser.add_argument("--seed", type=int, default=None,
                         help="override the signal's own default seed; omitted "
                              "leaves each signal on its config.py default")
@@ -180,8 +181,7 @@ def main() -> None:
     roster = production_module.roster_for(args.signal)
     if roster:
         print(f"{args.signal}: {len(roster)} names")
-    panel = features_module.cross_sectionalize(
-        features_module.build_panel(roster))
+    panel = features_module.cached_panel(roster)
 
     # In fast mode the trailing average moves from the predictions to the
     # features, and every date the book never consults is dropped. Both are
@@ -203,6 +203,8 @@ def main() -> None:
                      "columns": columns}
     if args.seed is not None:
         signal_kwargs["seed"] = args.seed
+    if args.hidden is not None:
+        signal_kwargs["hidden"] = args.hidden
 
     folds = fold_dates(panel, args.start_year, horizon)
     print(f"\n{len(folds)} folds, signal '{args.signal}'"

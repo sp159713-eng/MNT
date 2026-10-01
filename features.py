@@ -34,6 +34,9 @@ and a very encouraging one.
 
 from __future__ import annotations
 
+import hashlib
+import os
+
 import numpy as np
 import pandas as pd
 
@@ -385,6 +388,43 @@ def split_panel(panel: pd.DataFrame, horizon: int | None = None
                 & (panel["timestamp"] <= val_end)]
     test = panel[panel["timestamp"] > val_end + gap]
     return train.copy(), val.copy(), test.copy()
+
+
+PANEL_CACHE_DIR = os.path.join(data_module.CACHE_DIR, "panels")
+
+
+def _panel_key(symbols: list[str]) -> str:
+    h = hashlib.sha256()
+    here = os.path.dirname(os.path.abspath(__file__))
+    for name in ("features.py", "data.py", "config.py"):
+        path = os.path.join(here, name)
+        if os.path.exists(path):
+            with open(path, "rb") as handle:
+                h.update(handle.read())
+    h.update(f"{config.TARGET_HORIZON}|{config.START}|{config.BENCHMARK}".encode())
+    for symbol in sorted(symbols) + [config.BENCHMARK]:
+        path = data_module._cache_path(symbol, "1d", False)
+        stat = os.stat(path) if os.path.exists(path) else None
+        h.update(f"{symbol}|{stat.st_mtime_ns if stat else 0}|{stat.st_size if stat else 0};".encode())
+    return h.hexdigest()[:20]
+
+
+def cached_panel(symbols: list[str] | None = None) -> pd.DataFrame:
+    symbols = list(symbols or config.UNIVERSE)
+    path = os.path.join(PANEL_CACHE_DIR, f"panel_{_panel_key(symbols)}.pkl")
+    if os.path.exists(path):
+        print(f"panel cache hit: {os.path.basename(path)}")
+        return pd.read_pickle(path)
+    panel = cross_sectionalize(build_panel(symbols))
+    os.makedirs(PANEL_CACHE_DIR, exist_ok=True)
+    tmp = path + ".tmp"
+    panel.to_pickle(tmp)
+    os.replace(tmp, path)
+    old = sorted((os.path.join(PANEL_CACHE_DIR, f) for f in os.listdir(PANEL_CACHE_DIR)
+                  if f.endswith(".pkl")), key=os.path.getmtime)
+    for stale in old[:-3]:
+        os.remove(stale)
+    return panel
 
 
 def main() -> None:
