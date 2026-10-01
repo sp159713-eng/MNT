@@ -443,6 +443,11 @@ class SimPage(Page):
         self.progress = ttk.Progressbar(self, mode="indeterminate",
                                         style="TProgressbar")
 
+        from gapcard import GapCard
+
+        self.gap = GapCard(self)
+        self.gap.pack(fill="x", pady=(0, 14))
+
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
         self.tiles = {}
@@ -464,9 +469,15 @@ class SimPage(Page):
         card.pack(fill="both", expand=True)
         self.chart = Chart(card.body, height=270)
         self.chart.pack(fill="both", expand=True)
-        self.verdict = tk.Label(card.body, text="", bg=Palette.panel,
+        self.verdict = tk.Label(card.body, text="Press Run sim", bg=Palette.panel,
                                 fg=Palette.muted, font=self.f["small"])
         self.verdict.pack(anchor="w", pady=(8, 0))
+
+    def on_show(self) -> None:
+        try:
+            self.gap.refresh()
+        except Exception:
+            pass
 
     def _read_capital(self):
         text = self.capital_entry.get().strip().replace(",", "")

@@ -369,6 +369,26 @@ class BacktestPage(Page):
                            font=self.f["mono_small"], relief="flat", wrap="none",
                            insertbackground=Palette.text, height=14)
         self.log.pack(fill="both", expand=True)
+        self.after(50, self._load_last)
+
+    def _load_last(self) -> None:
+        try:
+            from gapcard import fold_series, latest_walkforward
+
+            record = latest_walkforward()
+            years, values = fold_series(record)
+            if not values:
+                return
+            self.chart.lines([("walk-forward", values)], years,
+                             best="walk-forward", baseline=0.0)
+            pooled = record["pooled"]
+            edge = record.get("edge") or {}
+            self.scores.configure(
+                text=(f"run #{record['id']}  pooled {pooled['net_excess_bp']:+.0f}bp  "
+                      f"t {pooled['t_stat']:.2f}  edge {edge.get('net_excess_bp', 0):+.0f}bp "
+                      f"vs {edge.get('baseline', '-')}"))
+        except Exception:
+            pass
 
     def run(self) -> None:
         self.run_button.set_enabled(False)
