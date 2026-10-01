@@ -285,7 +285,7 @@ def main() -> None:
                                        every, args.capital, args.slippage,
                                        args.segment)
             if not part.empty:
-                baseline_books[name].append(part)
+                baseline_books.setdefault(name, []).append(part)
 
     if not collected:
         raise SystemExit("no folds produced a book")
