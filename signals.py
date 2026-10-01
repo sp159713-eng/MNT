@@ -342,8 +342,41 @@ class XGBoostSignal:
             panel[self.columns].to_numpy(dtype=np.float32))
 
 
+class BlendSignal:
+    def __init__(self, first: str, second: str, weight: float = 0.5, **kwargs):
+        self.parts = [first, second]
+        self.weights = [weight, 1.0 - weight]
+        self.models = [None if _is_feature(n) else build(n, **kwargs)
+                       for n in self.parts]
+
+    def fit(self, train_panel, val_panel):
+        for model in self.models:
+            if model is not None:
+                model.fit(train_panel, val_panel)
+        return self
+
+    def predict(self, panel: pd.DataFrame) -> np.ndarray:
+        total = np.zeros(len(panel))
+        for name, model, weight in zip(self.parts, self.models, self.weights):
+            raw = (panel[name].to_numpy(dtype=float) if model is None
+                   else np.asarray(model.predict(panel), dtype=float))
+            ranked = (pd.Series(raw, index=panel.index)
+                      .groupby(panel["timestamp"].to_numpy()).rank(pct=True))
+            total += weight * ranked.fillna(0.5).to_numpy()
+        return total
+
+
+def _is_feature(name: str) -> bool:
+    return name not in config.SIGNALS and not name.startswith(("gbm", "xgb"))
+
+
 def build(name: str, **kwargs):
     """Factory. `name` is one of the keys below."""
+    if name.startswith("blend:"):
+        spec = name[len("blend:"):].split(":")
+        first, second = spec[0].split("+")
+        return BlendSignal(first, second,
+                           float(spec[1]) if len(spec) > 1 else 0.5, **kwargs)
     if name == "nn":
         return NeuralSignal(**{k: v for k, v in kwargs.items()
                                if k in ("epochs", "seed", "hidden", "dropout",

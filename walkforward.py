@@ -149,7 +149,7 @@ def main() -> None:
                         default="delivery")
     parser.add_argument("--epochs", type=int, default=60)
     parser.add_argument("--signal", default=config.PRODUCTION_SIGNAL,
-                        choices=tuple(config.SIGNALS),
+                        type=lambda v: v if (v in config.SIGNALS or v.startswith(("blend:", "xgb"))) else parser.error(f"invalid signal {v!r}"),
                         help="which model generates the ranking; defaults to "
                              "whatever production trades")
     parser.add_argument("--max-context", type=int, default=8000,
