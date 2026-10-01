@@ -102,6 +102,7 @@ def settings(args) -> dict:
         "feature_smooth": args.feature_smooth,
         "columns": getattr(args, "columns", "model"),
         "drop": getattr(args, "drop", ""),
+        "add": getattr(args, "add", ""),
         "hidden": getattr(args, "hidden", None),
         "recent_first": bool(getattr(args, "recent_first", False)),
         "cut_after": getattr(args, "cut_after", None),

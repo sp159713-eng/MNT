@@ -73,6 +73,8 @@ MARKET_CONTEXT_COLUMNS = ["mkt_return_20d", "mkt_volatility_20"]
 
 MODEL_COLUMNS = FEATURE_COLUMNS + MARKET_CONTEXT_COLUMNS
 
+REGIME_COLUMNS = ["liq_spread_21", "liq_spread_63"]
+
 # The fourteen columns MNT started with, before NNS's block was ported in.
 #
 # Kept as a named set because the measurement that matters here points at it:
@@ -304,6 +306,20 @@ def cross_sectionalize(panel: pd.DataFrame,
             "10 in the universe - add more in the Universe tab.")
 
     grouped = panel.groupby("timestamp")
+    if "dollar_vol" in panel.columns:
+        liquid = panel["dollar_vol"] >= grouped["dollar_vol"].transform("median")
+        for window in (21, 63):
+            source = f"mom_{window}"
+            if source not in panel.columns:
+                continue
+            by_date = panel["timestamp"]
+            high = panel[source].where(liquid).groupby(by_date).transform("mean")
+            low = panel[source].where(~liquid).groupby(by_date).transform("mean")
+            panel[f"liq_spread_{window}"] = high - low
+    for column in REGIME_COLUMNS:
+        if column not in panel.columns:
+            panel[column] = 0.0
+    panel[REGIME_COLUMNS] = panel[REGIME_COLUMNS].fillna(0.0)
     for column in FEATURE_COLUMNS:
         if column not in panel.columns:
             panel[column] = 0.0
