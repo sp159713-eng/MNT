@@ -48,8 +48,19 @@ def _one(signal, seed, cwd, on_line):
             "cut": bool(record["settings"].get("cut"))}
 
 
+def _runnable(signal):
+    import importlib.util
+
+    if "nn" in signal.replace("mom", "") and importlib.util.find_spec("torch") is None:
+        return False
+    if "xgb" in signal and importlib.util.find_spec("xgboost") is None:
+        return False
+    return True
+
+
 def rank(candidates=CANDIDATES, seeds=SEEDS, cwd=None, on_line=None):
     cwd = cwd or os.path.dirname(os.path.abspath(__file__))
+    candidates = [c for c in candidates if _runnable(c)]
     rows = []
     for index, signal in enumerate(candidates, start=1):
         results = []

@@ -907,6 +907,35 @@ class App(tk.Tk):
         self.palette = CommandPalette(self)
         self.bind_all("<Control-k>", self.palette.open)
         self.bind_all("<Control-K>", self.palette.open)
+        self.after(1500, self._ensure_model)
+
+    def _ensure_model(self) -> None:
+        import joblib
+        import theme as theme_module
+
+        import production as production_module
+
+        prefs = theme_module.preferences()
+        if prefs.get("default_signal") != self.settings.DEFAULT_SIGNAL:
+            if prefs.get("signal") in (None, "lightgbm"):
+                theme_module.save_signal(self.settings.DEFAULT_SIGNAL)
+                self.settings.PRODUCTION_SIGNAL = self.settings.DEFAULT_SIGNAL
+            theme_module._write(dict(theme_module.preferences(),
+                                     default_signal=self.settings.DEFAULT_SIGNAL))
+        wanted = self.settings.PRODUCTION_SIGNAL
+        try:
+            stored = joblib.load(production_module.PATH).get("name")
+        except Exception:
+            stored = None
+        if stored == wanted or not self.settings.UNIVERSE:
+            return
+
+        def work():
+            signal, _panel = production_module.fit(wanted, quiet=True)
+            production_module.save(signal, wanted)
+            return wanted
+
+        self.worker.submit(work, lambda _n: None, lambda _e: None)
 
     def _check_update(self) -> None:
         if not getattr(self.settings, "UPDATE_REPO", ""):
