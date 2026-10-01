@@ -290,7 +290,15 @@ def main() -> None:
               f"{backtest_module.breakeven_bp(book):>9.1f}"
               f"{fold_acc:>+9.3f}", flush=True)
 
+        fit = getattr(signal, "report", None) or next(
+            (m.report for m in getattr(signal, "models", []) or []
+             if m is not None and getattr(m, "report", None)), None)
+        if fit and "train_ic" in fit:
+            print(f"  fit: train IC {fit['train_ic']:+.4f}  val IC "
+                  f"{fit['best_val_ic']:+.4f}  epoch {fit['best_epoch']}", flush=True)
         fold_records.append({
+            "fit": ({k: fit[k] for k in ("train_ic", "best_val_ic", "best_epoch")}
+                    if fit and "train_ic" in fit else None),
             "test_year": int(test_end.year),
             "train_end": str(train_end.date()),
             "val_end": str(val_end.date()),

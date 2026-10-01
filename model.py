@@ -256,10 +256,15 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
 
     if best_state is not None:
         model.load_state_dict(best_state)
-    model.to("cpu")
     model.eval()
+    sample = np.sort(np.random.default_rng(seed).choice(n, min(n, 300000), replace=False))
+    with torch.no_grad():
+        fitted = model(x_train[torch.as_tensor(sample, device=device)]).cpu().numpy()
+    train_ic, _, _ = rank_ic(fitted, train_panel["target_excess"].to_numpy()[sample],
+                             train_panel["timestamp"].to_numpy()[sample])
+    model.to("cpu")
     return model, {"best_epoch": best_epoch, "best_val_ic": best_ic,
-                   "columns": len(columns)}
+                   "train_ic": train_ic, "columns": len(columns)}
 
 
 def predict(model: Ranker, panel: pd.DataFrame, columns=None) -> np.ndarray:
