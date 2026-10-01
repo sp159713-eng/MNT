@@ -166,6 +166,7 @@ def main() -> None:
     parser.add_argument("--hidden", type=int, default=None)
     parser.add_argument("--recent-first", action="store_true")
     parser.add_argument("--final", action="store_true")
+    parser.add_argument("--drop", default="")
     parser.add_argument("--cut-after", type=int, default=None)
     parser.add_argument("--cut-below", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=None,
@@ -180,6 +181,8 @@ def main() -> None:
 
     columns = (features_module.MODEL_COLUMNS if args.columns == "model"
                else features_module.CORE_COLUMNS)
+    dropped = [name for name in args.drop.split(",") if name]
+    columns = [name for name in columns if name not in dropped]
 
     horizon = config.TARGET_HORIZON
     roster = production_module.roster_for(args.signal)
