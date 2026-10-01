@@ -199,6 +199,8 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
 
     columns = list(columns) if columns else features_module.MODEL_COLUMNS
     device = _device()
+    if device == "cpu" and not os.environ.get("OMP_NUM_THREADS"):
+        torch.set_num_threads(os.cpu_count() or 1)
     x_train = torch.tensor(train_panel[columns].to_numpy(dtype=np.float32),
                            device=device)
     y_train = torch.tensor(rank_target(train_panel), device=device)
