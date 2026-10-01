@@ -106,6 +106,8 @@ def settings(args) -> dict:
         "cut_after": getattr(args, "cut_after", None),
         "cut_below": getattr(args, "cut_below", 0.0),
         "cut": bool(getattr(args, "cut_triggered", False)),
+        "final": bool(getattr(args, "final", True)),
+        "holdout_from": config.HOLDOUT_FROM,
         # From config.py, where they are just as capable of moving the answer.
         # top_k and hold_buffer are the FALLBACK pair only: walk-forward picks
         # both per fold on that fold's validation year, so these two describe

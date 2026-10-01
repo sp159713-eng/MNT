@@ -149,7 +149,7 @@ def main() -> None:
                         default="delivery")
     parser.add_argument("--epochs", type=int, default=60)
     parser.add_argument("--signal", default=config.PRODUCTION_SIGNAL,
-                        type=lambda v: v if (v in config.SIGNALS or v.startswith(("blend:", "xgb"))) else parser.error(f"invalid signal {v!r}"),
+                        type=lambda v: v if (v in config.SIGNALS or v.startswith(("blend:", "xgb", "ens"))) else parser.error(f"invalid signal {v!r}"),
                         help="which model generates the ranking; defaults to "
                              "whatever production trades")
     parser.add_argument("--max-context", type=int, default=8000,
@@ -165,6 +165,7 @@ def main() -> None:
                         help="which feature set the signal trains on")
     parser.add_argument("--hidden", type=int, default=None)
     parser.add_argument("--recent-first", action="store_true")
+    parser.add_argument("--final", action="store_true")
     parser.add_argument("--cut-after", type=int, default=None)
     parser.add_argument("--cut-below", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=None,
@@ -210,6 +211,10 @@ def main() -> None:
         signal_kwargs["hidden"] = args.hidden
 
     folds = fold_dates(panel, args.start_year, horizon)
+    if not args.final:
+        folds = [fold for fold in folds if fold[2].year < config.HOLDOUT_FROM]
+        print(f"test years >= {config.HOLDOUT_FROM} are the locked holdout; "
+              f"pass --final to include them")
     if args.recent_first:
         folds = folds[::-1]
     args.cut_triggered = False

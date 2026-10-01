@@ -405,6 +405,7 @@ class BacktestPage(Page):
             else:
                 command = [sys.executable, "-u", "walkforward.py",
                            "--signal", name]
+            command += ["--final"]
             if fast:
                 command += ["--fast", "--max-context", "1000"]
             environment = dict(os.environ, PYTHONUNBUFFERED="1")

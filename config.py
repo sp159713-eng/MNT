@@ -243,6 +243,7 @@ GBM_PRESETS = (30, 60, 100, 120, 360)
 SIGNALS = (("lightgbm",) + tuple(f"gbm{n}" for n in GBM_PRESETS)
            + ("gbmall", "nn", "tabpfn"))
 DEFAULT_SIGNAL = "lightgbm"
+HOLDOUT_FROM = 2025
 
 
 def _remembered_signal() -> str:

@@ -366,12 +366,36 @@ class BlendSignal:
         return total
 
 
+class SeedEnsemble:
+    def __init__(self, base: str, count: int, **kwargs):
+        first = kwargs.pop("seed", None)
+        first = config.GBM_SEED if first is None else int(first)
+        self.models = [build(base, seed=first + i, **kwargs) for i in range(count)]
+
+    def fit(self, train_panel, val_panel):
+        for model in self.models:
+            model.fit(train_panel, val_panel)
+        return self
+
+    def predict(self, panel: pd.DataFrame) -> np.ndarray:
+        total = np.zeros(len(panel))
+        for model in self.models:
+            raw = np.asarray(model.predict(panel), dtype=float)
+            ranked = (pd.Series(raw, index=panel.index)
+                      .groupby(panel["timestamp"].to_numpy()).rank(pct=True))
+            total += ranked.fillna(0.5).to_numpy()
+        return total / len(self.models)
+
+
 def _is_feature(name: str) -> bool:
     return name not in config.SIGNALS and not name.startswith(("gbm", "xgb"))
 
 
 def build(name: str, **kwargs):
     """Factory. `name` is one of the keys below."""
+    if name.startswith("ens") and ":" in name and name[3:name.index(":")].isdigit():
+        return SeedEnsemble(name[name.index(":") + 1:], int(name[3:name.index(":")]),
+                            **kwargs)
     if name.startswith("blend:"):
         spec = name[len("blend:"):].split(":")
         first, second = spec[0].split("+")
