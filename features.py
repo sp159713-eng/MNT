@@ -228,8 +228,14 @@ def build_features(frame: pd.DataFrame,
     return out
 
 
+def liquid_membership(frames: dict, top: int) -> pd.DataFrame:
+    turnover = pd.DataFrame({symbol: (bars["close"] * bars["volume"]).rolling(21, min_periods=15).mean()
+                             for symbol, bars in frames.items()})
+    return turnover.rank(axis=1, ascending=False, method="first") <= top
+
+
 def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
-                start: str | None = None) -> pd.DataFrame:
+                start: str | None = None, top_liquid: int | None = None) -> pd.DataFrame:
     """The long-format panel: one row per (date, symbol), features plus target."""
     symbols = symbols or config.UNIVERSE
     horizon = horizon or config.TARGET_HORIZON
@@ -252,6 +258,7 @@ def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
     except Exception as error:                              # noqa: BLE001
         print(f"  no benchmark ({error}); index-relative features disabled")
 
+    member = liquid_membership(frames, top_liquid) if top_liquid else None
     rows = []
     for symbol, bars in frames.items():
         if len(bars) < 300:
@@ -263,6 +270,11 @@ def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
         # and it is touched on purpose.
         forward = bars["close"].shift(-horizon) / bars["close"] - 1.0
         features["target"] = forward
+        if member is not None:
+            keep = member[symbol].reindex(features.index).fillna(False).astype(bool)
+            features = features[keep.to_numpy()]
+            if features.empty:
+                continue
         rows.append(features.reset_index())
 
     panel = pd.concat(rows, ignore_index=True)
@@ -425,13 +437,15 @@ def _panel_key(symbols: list[str]) -> str:
     return h.hexdigest()[:20]
 
 
-def cached_panel(symbols: list[str] | None = None) -> pd.DataFrame:
+def cached_panel(symbols: list[str] | None = None,
+                 top_liquid: int | None = None) -> pd.DataFrame:
     symbols = list(symbols or config.UNIVERSE)
-    path = os.path.join(PANEL_CACHE_DIR, f"panel_{_panel_key(symbols)}.pkl")
+    tag = f"_top{top_liquid}" if top_liquid else ""
+    path = os.path.join(PANEL_CACHE_DIR, f"panel_{_panel_key(symbols)}{tag}.pkl")
     if os.path.exists(path):
         print(f"panel cache hit: {os.path.basename(path)}")
         return pd.read_pickle(path)
-    panel = cross_sectionalize(build_panel(symbols))
+    panel = cross_sectionalize(build_panel(symbols, top_liquid=top_liquid))
     os.makedirs(PANEL_CACHE_DIR, exist_ok=True)
     tmp = path + ".tmp"
     panel.to_pickle(tmp)

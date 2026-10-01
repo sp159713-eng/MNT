@@ -169,6 +169,8 @@ def main() -> None:
     parser.add_argument("--final", action="store_true")
     parser.add_argument("--drop", default="")
     parser.add_argument("--add", default="")
+    parser.add_argument("--universe", default=None)
+    parser.add_argument("--top-liquid", type=int, default=None)
     parser.add_argument("--cut-after", type=int, default=None)
     parser.add_argument("--cut-below", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=None,
@@ -191,7 +193,12 @@ def main() -> None:
     roster = production_module.roster_for(args.signal)
     if roster:
         print(f"{args.signal}: {len(roster)} names")
-    panel = features_module.cached_panel(roster)
+    if args.universe:
+        import json
+        with open(args.universe, encoding="utf-8") as handle:
+            roster = json.load(handle)["symbols"]
+        print(f"universe file: {len(roster)} names, top {args.top_liquid} liquid per day")
+    panel = features_module.cached_panel(roster, top_liquid=args.top_liquid)
 
     # In fast mode the trailing average moves from the predictions to the
     # features, and every date the book never consults is dropped. Both are

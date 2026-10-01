@@ -103,6 +103,8 @@ def settings(args) -> dict:
         "columns": getattr(args, "columns", "model"),
         "drop": getattr(args, "drop", ""),
         "add": getattr(args, "add", ""),
+        "universe": getattr(args, "universe", None),
+        "top_liquid": getattr(args, "top_liquid", None),
         "nn_budget": getattr(args, "nn_budget", None),
         "nn": config.nn_settings() if "nn" in (args.signal or "") else None,
         "hidden": getattr(args, "hidden", None),
