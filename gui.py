@@ -250,13 +250,10 @@ class CostsPage(Page):
         picker = tk.Frame(controls.body, bg=Palette.panel)
         picker.pack(fill="x", pady=(10, 0))
         for label in ("delivery", "intraday"):
-            tk.Radiobutton(picker, text=label, value=label,
-                           variable=self.segment, command=self.refresh,
-                           bg=Palette.panel, fg=Palette.text,
-                           selectcolor=Palette.bg, activebackground=Palette.panel,
-                           activeforeground=Palette.text, font=self.f["body"],
-                           highlightthickness=0, bd=0).pack(side="left",
-                                                            padx=(0, 14))
+            ttk.Radiobutton(picker, text=label, value=label,
+                            variable=self.segment, command=self.refresh,
+                            style="Panel.TRadiobutton").pack(side="left",
+                                                             padx=(0, 14))
 
         tk.Label(picker, text="slippage bp", bg=Palette.panel, fg=Palette.muted,
                  font=self.f["small"]).pack(side="left", padx=(20, 6))

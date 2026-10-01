@@ -627,12 +627,9 @@ class NewsPage(Page):
         self.auto = tk.BooleanVar(value=False)
         ttk.Spinbox(row, from_=1, to=180, increment=5, width=4,
                    textvariable=self.every, font=self.f["mono_small"]).pack(side="right", padx=(0, 8))
-        tk.Checkbutton(row, text="auto every", variable=self.auto,
-                       command=self.auto_toggle, bg=Palette.bg,
-                       fg=Palette.muted, selectcolor=Palette.panel,
-                       activebackground=Palette.bg,
-                       activeforeground=Palette.text, font=self.f["small"],
-                       highlightthickness=0, bd=0).pack(side="right", padx=(0, 4))
+        ttk.Checkbutton(row, text="auto every", variable=self.auto,
+                        command=self.auto_toggle,
+                        style="TCheckbutton").pack(side="right", padx=(0, 4))
         tk.Label(row, text="min", bg=Palette.bg, fg=Palette.faint,
                  font=self.f["small"]).pack(side="right", padx=(0, 10))
 
@@ -2264,7 +2261,7 @@ class TrainingPage(Page):
         left.pack(side="left", fill="both", expand=True, padx=(0, 10))
         self.text = tk.Text(left.body, bg=Palette.panel, fg=Palette.muted,
                             font=self.f["mono_small"], relief="flat",
-                            wrap="word", height=14)
+                            wrap="word", height=14, width=1)
         self.text.pack(fill="both", expand=True)
 
         right = Card(panes, "Runs", "scored on names the fit never saw")
@@ -2273,13 +2270,14 @@ class TrainingPage(Page):
         self.tree = ttk.Treeview(right.body, columns=columns,
                                  show="headings", height=14)
         for column, width, heading, anchor in (
-                ("id", 44, "ID", "e"), ("when", 118, "WHEN", "w"),
-                ("seed", 70, "SEED", "e"), ("names", 56, "NAMES", "e"),
-                ("ic", 86, "UNSEEN IC", "e"),
-                ("excess", 92, "EXCESS/YR", "e"),
-                ("trained", 92, "TRAINED IC", "e")):
+                ("id", 34, "ID", "e"), ("when", 96, "WHEN", "w"),
+                ("seed", 48, "SEED", "e"), ("names", 52, "NAMES", "e"),
+                ("ic", 70, "UNSEEN IC", "e"),
+                ("excess", 74, "EXCESS/YR", "e"),
+                ("trained", 74, "TRAINED IC", "e")):
             self.tree.heading(column, text=heading)
-            self.tree.column(column, width=width, anchor=anchor)
+            self.tree.column(column, width=width, minwidth=30, anchor=anchor,
+                             stretch=True)
         self.tree.tag_configure("stripe", background=Palette.stripe)
         self.tree.pack(fill="both", expand=True)
 

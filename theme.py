@@ -602,6 +602,15 @@ def style_widgets(root: tk.Misc) -> None:
               background=[("active", Palette.bg)],
               foreground=[("active", Palette.text)],
               indicatorcolor=[("selected", Palette.accent)])
+    for name, back in (("TRadiobutton", Palette.bg),
+                       ("Panel.TRadiobutton", Palette.panel)):
+        style.configure(name, background=back, foreground=Palette.text,
+                        focuscolor=back, indicatorcolor=Palette.panel_high,
+                        indicatorbackground=Palette.panel_high,
+                        indicatorforeground=Palette.accent, **surface)
+        style.map(name, background=[("active", back)],
+                  foreground=[("active", Palette.text)],
+                  indicatorcolor=[("selected", Palette.accent)])
     # The slider is drawn from `background`; the trough from `troughcolor`. Left
     # to itself clam bevels both with its near-white light/dark defaults, which
     # rendered the whole control as a white bar with a striped grip - the single
