@@ -134,6 +134,11 @@ def clean_bars(frame: pd.DataFrame, symbol: str = "", quiet: bool = True
 
 
 def _cache_path(symbol: str, interval: str, unadjusted: bool) -> str:
+    if os.environ.get("MNT_DATA_SOURCE") == "nse" and interval == "1d" and not unadjusted:
+        name = "".join("_" if ch in r'\/:*?"<>|' else ch for ch in symbol)
+        candidate = os.path.join(CACHE_DIR, "nse", "adj", f"{name}.csv")
+        if os.path.exists(candidate):
+            return candidate
     tag = "raw" if unadjusted else "adj"
     safe = to_yahoo(symbol).replace("^", "IDX_").replace(".", "_")
     return os.path.join(CACHE_DIR, f"{safe}_{interval}_{tag}.csv")

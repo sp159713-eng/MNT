@@ -74,6 +74,7 @@ MARKET_CONTEXT_COLUMNS = ["mkt_return_20d", "mkt_volatility_20"]
 MODEL_COLUMNS = FEATURE_COLUMNS + MARKET_CONTEXT_COLUMNS
 
 REGIME_COLUMNS = ["liq_spread_21", "liq_spread_63"]
+DELIVERY_COLUMNS = ["deliv_21", "deliv_surprise"]
 
 # The fourteen columns MNT started with, before NNS's block was ported in.
 #
@@ -167,6 +168,11 @@ def build_features(frame: pd.DataFrame,
 
     turnover = (close * volume).rolling(21).mean()
     out["dollar_vol"] = np.log1p(turnover)
+    if "deliv_pct" in frame:
+        deliv = frame["deliv_pct"]
+        out["deliv_21"] = deliv.rolling(21, min_periods=10).mean()
+        out["deliv_surprise"] = (deliv.rolling(5, min_periods=3).mean()
+                                 / out["deliv_21"].replace(0, np.nan))
     # Volume today against its own recent normal. Participation, not size.
     out["vol_surprise"] = volume / volume.rolling(63).mean().replace(0, np.nan)
 
@@ -332,7 +338,7 @@ def cross_sectionalize(panel: pd.DataFrame,
         if column not in panel.columns:
             panel[column] = 0.0
     panel[REGIME_COLUMNS] = panel[REGIME_COLUMNS].fillna(0.0)
-    for column in FEATURE_COLUMNS:
+    for column in FEATURE_COLUMNS + DELIVERY_COLUMNS:
         if column not in panel.columns:
             panel[column] = 0.0
             continue
@@ -348,7 +354,7 @@ def cross_sectionalize(panel: pd.DataFrame,
     # actually harvests, since the book is always long six of these names.
     panel["target_excess"] = panel["target"] - grouped["target"].transform("mean")
 
-    panel[MODEL_COLUMNS] = panel[MODEL_COLUMNS].fillna(0.0)
+    panel[MODEL_COLUMNS + DELIVERY_COLUMNS] = panel[MODEL_COLUMNS + DELIVERY_COLUMNS].fillna(0.0)
     if not require_target:
         return panel.reset_index(drop=True)
     return panel.dropna(subset=["target_excess"]).reset_index(drop=True)
@@ -429,7 +435,8 @@ def _panel_key(symbols: list[str]) -> str:
         if os.path.exists(path):
             with open(path, "rb") as handle:
                 h.update(handle.read())
-    h.update(f"{config.TARGET_HORIZON}|{config.START}|{config.BENCHMARK}".encode())
+    h.update(f"{config.TARGET_HORIZON}|{config.START}|{config.BENCHMARK}|"
+             f"{os.environ.get('MNT_DATA_SOURCE', '')}".encode())
     for symbol in sorted(symbols) + [config.BENCHMARK]:
         path = data_module._cache_path(symbol, "1d", False)
         stat = os.stat(path) if os.path.exists(path) else None
