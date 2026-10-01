@@ -344,6 +344,12 @@ class BacktestPage(Page):
                         style="TCheckbutton").pack(side="right", padx=(10, 0))
         self.run_button = Button(top, "Run", self.run)
         self.run_button.pack(side="right")
+        self.auto_button = Button(top, "Auto model", self.auto, kind="ghost")
+        self.auto_button.pack(side="right", padx=(0, 8))
+        self.use_button = Button(top, "Use best", self.use_best, kind="ghost")
+        self.use_button.pack(side="right", padx=(0, 8))
+        self.use_button.set_enabled(False)
+        self.report = None
 
         self.progress = ttk.Progressbar(self, mode="indeterminate",
                                         style="TProgressbar")
@@ -474,8 +480,70 @@ class BacktestPage(Page):
                     values.append(float(excess[0]))
         return years, values
 
+    def auto(self) -> None:
+        import automodel
+
+        self.run_button.set_enabled(False)
+        self.auto_button.set_enabled(False)
+        self.use_button.set_enabled(False)
+        self.progress.pack(fill="x", pady=(0, 10), before=self.log.master.master.master)
+        self.progress.start(12)
+        self.log.delete("1.0", "end")
+        self.scores.configure(text="Auto model: testing every model, 3 seeds each...")
+        put = self.app.worker.queue.put
+
+        def work():
+            return automodel.rank(cwd=RUN_DIR,
+                                  on_line=lambda line: put((self._append, line)))
+
+        self.app.worker.submit(work, self._auto_done, self._failed)
+
+    def _auto_done(self, report) -> None:
+        import automodel
+
+        self.run_button.set_enabled(True)
+        self.auto_button.set_enabled(True)
+        self.progress.stop()
+        self.progress.pack_forget()
+        self.report = report
+        self._append("\n" + automodel.summary(report) + "\n")
+        best = report.get("best")
+        live = getattr(self.app.settings, "PRODUCTION_SIGNAL", None)
+        row = next((r for r in report["rows"] if r["signal"] == best), None)
+        if not row:
+            self.scores.configure(text="Auto model: no model passed")
+            return
+        self.scores.configure(
+            text=f"best {best}  {row['bp']:+.0f}bp avg, worst seed {row['worst']:+.0f}"
+                 f"    live: {live}")
+        self.use_button.set_enabled(best != live)
+
+    def use_best(self) -> None:
+        if not self.use_button.enabled or not self.report:
+            return
+        import theme as theme_module
+
+        name = self.report["best"]
+        self.use_button.set_enabled(False)
+        theme_module.save_signal(name)
+        self.app.settings.PRODUCTION_SIGNAL = name
+        self.scores.configure(text=f"Switching live model to {name}, fitting...")
+
+        def work():
+            import production as production_module
+
+            signal, _panel = production_module.fit(name, quiet=True)
+            production_module.save(signal, name)
+            return name
+
+        self.app.worker.submit(
+            work,
+            lambda n: self.scores.configure(text=f"Live model is now {n} (refitted)."),
+            self._failed)
+
     def _failed(self, error) -> None:
         self.run_button.set_enabled(True)
+        self.auto_button.set_enabled(True)
         self.progress.stop()
         self.progress.pack_forget()
         self._append(f"\nfailed: {error}\n")
