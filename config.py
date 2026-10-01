@@ -248,7 +248,8 @@ HOLDOUT_FROM = 2025
 
 NN_DEFAULTS = {"hidden": 32, "layers": 2, "dropout": 0.2, "learning_rate": 1e-3,
                "epochs": 60, "patience": 12, "weight_decay": 1e-4,
-               "activation": "gelu", "loss": "mse", "minutes": 0}
+               "activation": "gelu", "loss": "mse", "minutes": 0,
+               "batch_size": 1024}
 NN_CHOICES = {"activation": ("gelu", "relu", "silu"),
               "loss": ("mse", "huber", "corr")}
 

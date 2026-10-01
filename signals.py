@@ -104,6 +104,7 @@ class NeuralSignal:
         self.activation = chosen["activation"] if activation is None else activation
         self.loss = chosen["loss"] if loss is None else loss
         self.minutes = chosen["minutes"] if minutes is None else minutes
+        self.batch_size = chosen["batch_size"]
         self.epochs = epochs
         self.seed = seed
         self.hidden = hidden
@@ -127,7 +128,8 @@ class NeuralSignal:
             layers=getattr(self, "layers", 2),
             activation=getattr(self, "activation", "gelu"),
             loss=getattr(self, "loss", "mse"),
-            minutes=getattr(self, "minutes", 0), quiet=True)
+            minutes=getattr(self, "minutes", 0),
+            batch_size=getattr(self, "batch_size", 1024), quiet=True)
 
     def predict(self, panel: pd.DataFrame) -> np.ndarray:
         import model as model_module

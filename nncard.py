@@ -10,9 +10,9 @@ FIELDS = (("hidden", "width"), ("layers", "layers"), ("dropout", "dropout"),
           ("learning_rate", "learn rate"), ("epochs", "epochs"),
           ("patience", "patience"), ("weight_decay", "weight decay"),
           ("activation", "activation"), ("loss", "loss"),
-          ("minutes", "max minutes"))
+          ("minutes", "max minutes"), ("batch_size", "batch size"))
 LIMITS = {"hidden": (4, 2048), "layers": (1, 4), "dropout": (0.0, 0.9),
-          "learning_rate": (1e-5, 1e-1), "epochs": (1, 5000), "minutes": (0, 600),
+          "learning_rate": (1e-5, 1e-1), "epochs": (1, 5000), "minutes": (0, 600), "batch_size": (32, 65536),
           "patience": (1, 200), "weight_decay": (0.0, 1e-1)}
 
 
