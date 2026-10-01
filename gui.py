@@ -712,7 +712,10 @@ class App(tk.Tk):
         self.worker = Worker(self)
         self.capital = 500000.0
         self.current = "Book"
-        self._gate()
+        self.f = fonts()
+        self.configure(bg=Palette.bg)
+        style_widgets(self)
+        self._build()
 
     def _gate(self) -> None:
         """Sign up on the first launch, ask for the password on every one after.
@@ -859,14 +862,12 @@ class App(tk.Tk):
         container.pack(side="left", fill="both", expand=True,
                        padx=SPACE["xl"], pady=SPACE["xl"])
 
-        import auth as auth_module
 
         self.pages, self.buttons, self.tab_home = {}, {}, {}
         nav = tk.Frame(sidebar, bg=Palette.sidebar_bg)
         nav.pack(fill="x", padx=SPACE["md"])
         for heading, entries in self.SECTIONS:
-            visible = [e for e in entries if e[0] not in self.ADMIN_ONLY
-                       or auth_module.is_admin()]
+            visible = list(entries)
             if not visible:
                 continue
             section_label(nav, heading)
