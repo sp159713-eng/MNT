@@ -396,6 +396,11 @@ def build(name: str, **kwargs):
     if name.startswith("ens") and ":" in name and name[3:name.index(":")].isdigit():
         return SeedEnsemble(name[name.index(":") + 1:], int(name[3:name.index(":")]),
                             **kwargs)
+    if name.startswith("regime:"):
+        columns = features_module.MODEL_COLUMNS + features_module.REGIME_COLUMNS
+        signal = build(name[len("regime:"):], **{**kwargs, "columns": columns})
+        signal.columns = columns
+        return signal
     if name.startswith("blend:"):
         spec = name[len("blend:"):].split(":")
         first, second = spec[0].split("+")

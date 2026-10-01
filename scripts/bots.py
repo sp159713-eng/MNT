@@ -33,6 +33,7 @@ BOTS = {
     "gbm100": {"signal": "gbm100"},
     "mom126": {"signal": None},
     "blend360": {"signal": "blend:lightgbm+mom_252"},
+    "regime360": {"signal": "regime:blend:lightgbm+mom_252"},
 }
 
 
