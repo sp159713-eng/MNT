@@ -18,8 +18,9 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
+from dialogs import centre, confirm, frame_window
 from theme import Button, Card, Chart, Palette, fonts
 
 
@@ -28,15 +29,17 @@ class Page(tk.Frame):
         super().__init__(parent, bg=Palette.bg)
         self.app = app
         self.f = fonts()
+        self.embedded = getattr(parent, "embeds_pages", False)
 
     def on_show(self) -> None:
         """Called each time the page becomes visible."""
 
     def header(self, title: str) -> tk.Frame:
         row = tk.Frame(self, bg=Palette.bg)
-        row.pack(fill="x", pady=(0, 14))
-        tk.Label(row, text=title, bg=Palette.bg, fg=Palette.text,
-                 font=self.f["h1"]).pack(side="left")
+        row.pack(fill="x", pady=(0, 14 if not self.embedded else 6))
+        if not self.embedded:
+            tk.Label(row, text=title, bg=Palette.bg, fg=Palette.text,
+                     font=self.f["h1"]).pack(side="left")
         return row
 
 
@@ -349,13 +352,13 @@ class OrdersPage(Page):
 
         if live:
             total = sum(o["value"] for o in self.plan)
-            if not messagebox.askyesno(
-                    "Place REAL orders?",
+            if not confirm(
+                    self, "Place REAL orders?",
                     f"This will place {len(self.plan)} orders on {venue.name} "
                     f"for about Rs {total:,.0f} of REAL money.\n\n"
                     f"The strategy's walk-forward t-statistic is below 2 and "
                     f"the order-level sim lost to buy-and-hold.\n\n"
-                    f"Continue?", icon="warning", default="no"):
+                    f"Continue?", default_yes=False, danger=True):
                 self.status.config(text="cancelled", fg=Palette.muted)
                 return
 
@@ -760,7 +763,7 @@ class NewsPage(Page):
             import news as news_module
 
             self.status.config(
-                text=("No stocks yet - add them in the Universe tab."
+                text=("No stocks yet - add them on the Stock page."
                       if not config.UNIVERSE
                       else f"Nothing published in the last "
                            f"{news_module.MAX_AGE_DAYS} days  ({when})"),
@@ -1436,7 +1439,7 @@ class SignalsPage(Page):
             import config
 
             self.summary.config(
-                text=("No stocks yet - add them in the Universe tab."
+                text=("No stocks yet - add them on the Stock page."
                       if not config.UNIVERSE
                       else f"{what}: nothing to screen."))
             return
@@ -1576,11 +1579,11 @@ class SettingsPage(Page):
             fill="x", pady=(8, 0))
 
         # --- stocks -------------------------------------------------------
-        stocks_card = Card(body, "Stocks", "managed in the Universe tab")
+        stocks_card = Card(body, "Stocks", "managed on the Stock page")
         stocks_card.pack(fill="x", pady=(0, 14))
 
         tk.Label(stocks_card.body,
-                 text="Add, remove and search for stocks in the Universe tab. "
+                 text="Add, remove and search for stocks on the Stock page. "
                       "A name in the UNIVERSE is fitted, ranked and can be "
                       "bought; a WATCHLIST name is fetched and shown and never "
                       "reaches the model. Names live in artifacts/stocks.json "
@@ -1701,7 +1704,7 @@ class UniversePage(Page):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        self.card = Card(self, "Universe", "every name the book can see")
+        self.card = Card(self, "Stock", "every name the book can see")
         self.card.pack(fill="both", expand=True)
 
         columns = ("symbol", "sector", "source", "list")
@@ -1986,7 +1989,7 @@ class StockDetail(tk.Toplevel):
               ("5Y", "1d", 1260), ("MAX", "1d", None))
 
     def __init__(self, app, symbol: str):
-        super().__init__(app, bg=Palette.bg, padx=18, pady=18)
+        super().__init__(app)
         self.app = app
         self.symbol = symbol
         self.f = fonts()
@@ -1998,9 +2001,11 @@ class StockDetail(tk.Toplevel):
         self.active_range = "1Y"
         self.colour = None
         self.title(f"{symbol} - MNT")
-        self.geometry("900x640")
+        body = frame_window(self, f"{symbol}  ·  MNT")
+        centre(self, app, 900, 660)
+        self.after(50, self.focus_force)
 
-        head = tk.Frame(self, bg=Palette.bg)
+        head = tk.Frame(body, bg=Palette.bg)
         head.pack(fill="x")
         tk.Label(head, text=symbol, bg=Palette.bg, fg=Palette.text,
                  font=self.f["h1"]).pack(side="left")
@@ -2008,13 +2013,13 @@ class StockDetail(tk.Toplevel):
                                font=self.f["body"])
         self.sector.pack(side="left", padx=(12, 0))
 
-        self.stats = tk.Label(self, text="Reading cached history...",
+        self.stats = tk.Label(body, text="Reading cached history...",
                               bg=Palette.bg, fg=Palette.muted,
                               font=self.f["mono_small"], anchor="w",
                               justify="left")
         self.stats.pack(fill="x", pady=(12, 0))
 
-        ranges = tk.Frame(self, bg=Palette.bg)
+        ranges = tk.Frame(body, bg=Palette.bg)
         ranges.pack(fill="x", pady=(10, 0))
         self.range_buttons = {}
         for label, _interval, _span in self.RANGES:
@@ -2030,12 +2035,12 @@ class StockDetail(tk.Toplevel):
                                    font=self.f["mono_small"])
         self.range_note.pack(side="left", padx=(14, 0))
 
-        card = Card(self, "Price", "1D-1M live from Groww, longer ranges from the local cache")
+        card = Card(body, "Price", "1D-1M live from Groww, longer ranges from the local cache")
         card.pack(fill="both", expand=True, pady=(14, 0))
         self.chart = Chart(card.body, height=320)
         self.chart.pack(fill="both", expand=True)
 
-        self.model = tk.Label(self, text="Model view: reading the model...",
+        self.model = tk.Label(body, text="Model view: reading the model...",
                               bg=Palette.bg, fg=Palette.muted,
                               font=self.f["body"], anchor="w", justify="left",
                               wraplength=860)
@@ -2421,8 +2426,8 @@ class TrainingPage(Page):
         unseen = record.get("rank_ic", 0.0) if record else 0.0
         warning = ("" if unseen > 0 else
                    "\n\nThis run showed no edge on names it never saw.")
-        if not messagebox.askyesno(
-                "Promote",
+        if not confirm(
+                self, "Promote",
                 f"Make training run {run_id} the model that Book, Orders and "
                 f"Sim trade?{warning}"):
             return

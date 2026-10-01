@@ -37,7 +37,9 @@ from tkinter import ttk
 import re
 
 import pages as pages_module
-from theme import Button, Card, Chart, Palette, SidebarButton, fonts, style_widgets
+from shell import SidebarItem, TabbedPage, section_label
+from theme import (SPACE, Button, Card, Chart, Palette, fonts,
+                   style_widgets)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RUN_DIR = (os.path.dirname(sys.executable) if getattr(sys, "frozen", False)
@@ -88,6 +90,7 @@ class Page(tk.Frame):
         super().__init__(parent, bg=Palette.bg)
         self.app = app
         self.f = fonts()
+        self.embedded = getattr(parent, "embeds_pages", False)
 
     def on_show(self) -> None:
         """Called each time the page becomes visible."""
@@ -213,9 +216,10 @@ class CostsPage(Page):
     def __init__(self, parent, app):
         super().__init__(parent, app)
 
-        tk.Label(self, text="Cost of a round trip", bg=Palette.bg,
-                 fg=Palette.text, font=self.f["h1"]).pack(anchor="w",
-                                                          pady=(0, 12))
+        if not self.embedded:
+            tk.Label(self, text="Cost of a round trip", bg=Palette.bg,
+                     fg=Palette.text, font=self.f["h1"]).pack(anchor="w",
+                                                              pady=(0, 12))
 
         tk.Label(self,
                  text="What one buy-then-sell costs in charges and "
@@ -326,7 +330,7 @@ class BacktestPage(Page):
         top = tk.Frame(self, bg=Palette.bg)
         top.pack(fill="x", pady=(0, 12))
         tk.Label(top, text="Walk-forward", bg=Palette.bg, fg=Palette.text,
-                 font=self.f["h1"]).pack(side="left")
+                 font=self.f["h2" if self.embedded else "h1"]).pack(side="left")
 
         import config as config_module
 
@@ -521,7 +525,7 @@ class CommandPalette(tk.Frame):
 
     def catalogue(self):
         found = [(name, "page", lambda n=name: self.app.show(n))
-                 for name in self.app.pages]
+                 for name in self.app.names()]
         universe = getattr(self.app.settings, "UNIVERSE", ()) or ()
         for symbol in universe:
             found.append((symbol, "chart",
@@ -596,20 +600,21 @@ class CommandPalette(tk.Frame):
 
 
 class App(tk.Tk):
-    # Grouped: what to hold, what it costs, what it did, and the plumbing.
-    PAGES = (("Book", PicksPage),
-             ("Orders", pages_module.OrdersPage),
-             ("Account", pages_module.AccountPage),
-             ("Sim", pages_module.SimPage),
-             ("Costs", CostsPage),
-             ("Backtest", BacktestPage),
-             ("Signals", pages_module.SignalsPage),
-             ("Pulse", pages_module.PulsePage),
-             ("News", pages_module.NewsPage),
-             ("Venues", pages_module.VenuePage),
-             ("Universe", pages_module.UniversePage),
-             ("Training", pages_module.TrainingPage),
-             ("Settings", pages_module.SettingsPage))
+    SECTIONS = (
+        ("Trade", (("Book", PicksPage),
+                   ("Orders", pages_module.OrdersPage),
+                   ("Account", pages_module.AccountPage),
+                   ("Signals", pages_module.SignalsPage),
+                   ("News", (("News", pages_module.NewsPage),
+                             ("Pulse", pages_module.PulsePage))),
+                   ("Stock", pages_module.UniversePage))),
+        ("Results", (("Sim", pages_module.SimPage),
+                     ("Backtest", (("Backtest", BacktestPage),
+                                   ("Costs", CostsPage))),
+                     ("Training", pages_module.TrainingPage))),
+        ("System", (("Settings", (("General", pages_module.SettingsPage),
+                                  ("Venues", pages_module.VenuePage))),)),
+    )
 
     ADMIN_ONLY = ("Training",)
 
@@ -620,7 +625,7 @@ class App(tk.Tk):
         self.minsize(960, 640)
         self.worker = Worker(self)
         self.capital = 500000.0
-        self.current = "Costs"
+        self.current = "Book"
         self._gate()
 
     def _gate(self) -> None:
@@ -750,40 +755,47 @@ class App(tk.Tk):
         import config as config_module
         self.settings = config_module
 
-        sidebar = tk.Frame(self, bg=Palette.sidebar_bg, width=190)
+        sidebar = tk.Frame(self, bg=Palette.sidebar_bg, width=216)
         sidebar.pack(side="left", fill="y")
         sidebar.pack_propagate(False)
 
-        # A hairline between nav and content. Invisible in the dark scheme,
-        # where the sidebar is already darker than the page, and load-bearing
-        # in the light one, where both surfaces are white and the two regions
-        # otherwise run into each other.
         tk.Frame(self, bg=Palette.border, width=1).pack(side="left", fill="y")
 
         brand = tk.Frame(sidebar, bg=Palette.sidebar_bg)
-        brand.pack(fill="x", pady=(28, 30), padx=22)
+        brand.pack(fill="x", pady=(SPACE["xl"], SPACE["sm"]),
+                   padx=SPACE["lg"])
         tk.Label(brand, text="MNT", bg=Palette.sidebar_bg, fg=Palette.text,
                  font=self.f["h1"]).pack(anchor="w")
         tk.Label(brand, text="NSE equity book", bg=Palette.sidebar_bg,
                  fg=Palette.faint, font=self.f["small"]).pack(anchor="w")
 
-        tk.Frame(sidebar, bg=Palette.border, height=1).pack(fill="x", padx=16, pady=(0, 12))
-
         container = tk.Frame(self, bg=Palette.bg)
-        container.pack(side="left", fill="both", expand=True, padx=26, pady=24)
+        container.pack(side="left", fill="both", expand=True,
+                       padx=SPACE["xl"], pady=SPACE["xl"])
 
         import auth as auth_module
 
-        self.pages, self.buttons = {}, {}
-        for name, factory in self.PAGES:
-            if name in self.ADMIN_ONLY and not auth_module.is_admin():
+        self.pages, self.buttons, self.tab_home = {}, {}, {}
+        nav = tk.Frame(sidebar, bg=Palette.sidebar_bg)
+        nav.pack(fill="x", padx=SPACE["md"])
+        for heading, entries in self.SECTIONS:
+            visible = [e for e in entries if e[0] not in self.ADMIN_ONLY
+                       or auth_module.is_admin()]
+            if not visible:
                 continue
-            page = factory(container, self)
-            self.pages[name] = page
-
-            button = SidebarButton(sidebar, name, command=lambda n=name: self.show(n))
-            button.pack(fill="x")
-            self.buttons[name] = button
+            section_label(nav, heading)
+            for name, spec in visible:
+                if isinstance(spec, tuple):
+                    page = TabbedPage(container, self, name, spec)
+                    for tab, _factory in spec:
+                        self.tab_home[tab] = name
+                else:
+                    page = spec(container, self)
+                self.pages[name] = page
+                button = SidebarItem(nav, name,
+                                     command=lambda n=name: self.show(n))
+                button.pack(fill="x", pady=1)
+                self.buttons[name] = button
 
         footer = tk.Label(sidebar, text="costs are policy rates\ncheck your broker",
                           bg=Palette.sidebar_bg, fg=Palette.faint,
@@ -803,7 +815,7 @@ class App(tk.Tk):
         # Whatever was open before, not a fixed page: a theme switch is made
         # from Settings, and rebuilding onto Costs would answer the click by
         # navigating away from it.
-        self.show(self.current if self.current in self.pages else "Costs")
+        self.show(self.current if self.current in self.names() else "Book")
 
         self.palette = CommandPalette(self)
         self.bind_all("<Control-k>", self.palette.open)
@@ -821,8 +833,8 @@ class App(tk.Tk):
         return update.check(self.settings.APP_VERSION,
                             self.settings.UPDATE_REPO)
 
-    GLOW = ("#1f6feb", "#388bfd", "#58a6ff", "#79c0ff", "#58a6ff",
-            "#388bfd")
+    GLOW = ("#4f78e8", "#5f86f0", "#6d93ff", "#85a5ff", "#6d93ff",
+            "#5f86f0")
 
     def _update_done(self, found) -> None:
         if not found:
@@ -838,10 +850,10 @@ class App(tk.Tk):
         colour = self.GLOW[step % len(self.GLOW)]
         button = self.update_button
         button.base = colour
-        button.hover = "#79c0ff"
-        button.pressed = "#1f6feb"
+        button.hover = "#85a5ff"
+        button.pressed = "#4f78e8"
         try:
-            button.config(bg=colour, fg="#ffffff")
+            button.config(bg=colour, fg="#0b1220")
         except tk.TclError:
             return
         self.after(420, self._glow, step + 1)
@@ -853,14 +865,23 @@ class App(tk.Tk):
             page = getattr(self.settings, "UPDATE_PAGE", "")
             webbrowser.open_new_tab(page or self.update_info["url"])
 
+    def names(self) -> list:
+        return list(self.pages) + [t for t in self.tab_home
+                                   if t not in self.pages]
+
     def show(self, name: str) -> None:
+        host = self.tab_home.get(name, name)
         self.current = name
         for other, page in self.pages.items():
             page.pack_forget()
             self.buttons[other].set_active(False)
-        self.pages[name].pack(fill="both", expand=True)
-        self.buttons[name].set_active(True)
-        self.pages[name].on_show()
+        page = self.pages[host]
+        page.pack(fill="both", expand=True)
+        self.buttons[host].set_active(True)
+        if host != name:
+            page.select(name)
+        else:
+            page.on_show()
 
 
 if __name__ == "__main__":

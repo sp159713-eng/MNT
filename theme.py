@@ -23,9 +23,12 @@ import os
 import tkinter as tk
 from tkinter import font as tkfont
 
+SPACE = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 24, "xxl": 32}
+RADIUS = {"sm": 4, "md": 8, "lg": 14}
+
 
 class Dark:
-    """The original scheme, chosen for contrast against long numeric tables."""
+    """Warm Claude-Desktop grey, the Hub family."""
 
     name = "dark"
 
@@ -34,17 +37,17 @@ class Dark:
     panel_high = "#21262d"    # hover / selected
     border = "#30363d"
 
-    text = "#f0f6fc"
-    muted = "#8b949e"
-    faint = "#484f58"
+    text = "#ecebe8"
+    muted = "#a6a39b"
+    faint = "#6e7681"
 
-    accent = "#58a6ff"        # primary actions, focus
-    accent_dim = "#1f6feb"
-    accent_subtle = "#0d2240"
-    on_accent = "#ffffff"     # text that sits ON an accent fill
-    good = "#3fb950"          # profit, pass
-    bad = "#f85149"           # loss, fail
-    warn = "#d29922"          # marginal
+    accent = "#6d93ff"        # primary actions, focus
+    accent_dim = "#85a5ff"
+    accent_subtle = "#1b2c52"
+    on_accent = "#0b1220"     # text that sits ON an accent fill
+    good = "#3ed491"          # profit, pass
+    bad = "#ff6b64"           # loss, fail
+    warn = "#f5a623"          # marginal
 
     # Row tints for tables that encode a side. Applied as a BACKGROUND band
     # rather than as foreground colour: colouring the text turned every figure
@@ -62,11 +65,11 @@ class Dark:
     inset = "#0d1117"
 
     grid = "#21262d"
-    series = ("#4c9aff", "#3fb950", "#d29922", "#bc8cff", "#f85149")
+    series = ("#6d93ff", "#3ed491", "#f5a623", "#b18fff", "#ff6b64")
 
     sidebar_bg = "#010409"
     sidebar_hover = "#161b22"
-    sidebar_active = "#1f6feb"
+    sidebar_active = "#21262d"
 
 
 class Light:
@@ -117,7 +120,7 @@ class Light:
     # The 3px indicator stripe, so it has to be saturated. Set to the pale
     # tint at first, which on a white sidebar was invisible - the active page
     # was identifiable only by a faint grey row.
-    sidebar_active = "#00b386"
+    sidebar_active = "#e3f7f1"
 
 
 class Palette:
@@ -221,28 +224,63 @@ def fonts() -> dict:
     }
 
 
+def round_rect(canvas, x0, y0, x1, y1, radius, fill, outline="", tag="shape"):
+    r = max(0, min(radius, (x1 - x0) / 2, (y1 - y0) / 2))
+    points = [x0 + r, y0, x1 - r, y0, x1, y0, x1, y0 + r, x1, y1 - r, x1, y1,
+              x1 - r, y1, x0 + r, y1, x0, y1, x0, y1 - r, x0, y0 + r, x0, y0]
+    return canvas.create_polygon(points, smooth=True, splinesteps=16,
+                                 fill=fill, outline=outline, tags=tag)
+
+
+def backdrop_of(parent) -> str:
+    try:
+        return parent.cget("bg")
+    except tk.TclError:
+        return Palette.bg
+
+
 class Card(tk.Frame):
-    """A titled panel. The unit the whole layout is composed of."""
+    """A titled panel on a rounded canvas. The unit the layout is built from.
+
+    The canvas sits behind an inset frame; callers still pack into `.body`.
+    """
+
+    INSET = 5
 
     def __init__(self, parent, title: str = "", subtitle: str = "", **kwargs):
-        super().__init__(parent, bg=Palette.panel, highlightthickness=1,
-                         highlightbackground=Palette.border, **kwargs)
+        self.backdrop = backdrop_of(parent)
+        super().__init__(parent, bg=self.backdrop, **kwargs)
         self.fonts = fonts()
+        self._shape = tk.Canvas(self, bg=self.backdrop, highlightthickness=0,
+                                bd=0)
+        self._shape.place(x=0, y=0, relwidth=1, relheight=1)
+        self._shape.bind("<Configure>", self._paint)
+        self.inner = tk.Frame(self, bg=Palette.panel)
+        self.inner.pack(fill="both", expand=True, padx=self.INSET,
+                        pady=self.INSET)
         if title:
-            header = tk.Frame(self, bg=Palette.panel)
-            header.pack(fill="x", padx=18, pady=(13, 10))
+            header = tk.Frame(self.inner, bg=Palette.panel)
+            header.pack(fill="x", padx=SPACE["lg"],
+                        pady=(SPACE["md"], SPACE["sm"]))
             tk.Label(header, text=title, bg=Palette.panel, fg=Palette.text,
                      font=self.fonts["h2"]).pack(side="left")
             if subtitle:
                 tk.Label(header, text=subtitle, bg=Palette.panel,
                          fg=Palette.muted, font=self.fonts["small"]).pack(
-                    side="right")
-            
-            separator = tk.Frame(self, bg=Palette.border, height=1)
-            separator.pack(fill="x")
-            
-        self.body = tk.Frame(self, bg=Palette.panel)
-        self.body.pack(fill="both", expand=True, padx=18, pady=(10, 16))
+                    side="right", padx=(SPACE["md"], 0))
+            tk.Frame(self.inner, bg=Palette.border, height=1).pack(
+                fill="x", padx=SPACE["lg"])
+
+        self.body = tk.Frame(self.inner, bg=Palette.panel)
+        self.body.pack(fill="both", expand=True, padx=SPACE["lg"],
+                       pady=(SPACE["md"], SPACE["lg"]))
+
+    def _paint(self, event) -> None:
+        self._shape.delete("all")
+        if event.width > 4 and event.height > 4:
+            round_rect(self._shape, 0.5, 0.5, event.width - 1.5,
+                       event.height - 1.5, RADIUS["lg"], Palette.panel,
+                       Palette.border)
 
 
 class Chart(tk.Canvas):
@@ -528,11 +566,11 @@ def style_widgets(root: tk.Misc) -> None:
     # Flat, and a shade darker than the rows rather than lighter: a heading is
     # a label for the column, not a raised control to be clicked at.
     style.configure("Treeview.Heading",
-                    background=Palette.bg, foreground=Palette.muted,
+                    background=Palette.inset, foreground=Palette.muted,
                     borderwidth=0, relief="flat", padding=(10, 9),
                     font=fonts()["label"],
-                    bordercolor=Palette.bg, lightcolor=Palette.bg,
-                    darkcolor=Palette.bg)
+                    bordercolor=Palette.inset, lightcolor=Palette.inset,
+                    darkcolor=Palette.inset)
     style.map("Treeview.Heading",
               background=[("active", Palette.panel_high)],
               foreground=[("active", Palette.text)])
