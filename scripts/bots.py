@@ -34,6 +34,7 @@ BOTS = {
     "mom126": {"signal": None},
     "blend360": {"signal": "blend:lightgbm+mom_252"},
     "regime360": {"signal": "regime:blend:lightgbm+mom_252"},
+    "nnblend": {"signal": "blend:nn346+mom_252"},
 }
 
 

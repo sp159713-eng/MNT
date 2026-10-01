@@ -261,6 +261,8 @@ def nn_settings() -> dict:
             saved = json.load(handle).get("nn") or {}
     except Exception:
         saved = {}
+    if os.environ.get("MNT_NN_JSON"):
+        saved = {**saved, **json.loads(os.environ["MNT_NN_JSON"])}
     values = dict(NN_DEFAULTS)
     for key, default in NN_DEFAULTS.items():
         if key not in saved:

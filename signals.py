@@ -405,7 +405,7 @@ class SeedEnsemble:
 
 
 def _is_feature(name: str) -> bool:
-    return name not in config.SIGNALS and not name.startswith(("gbm", "xgb"))
+    return name not in config.SIGNALS and not name.startswith(("gbm", "xgb", "nn"))
 
 
 def build(name: str, **kwargs):
@@ -423,6 +423,8 @@ def build(name: str, **kwargs):
         first, second = spec[0].split("+")
         return BlendSignal(first, second,
                            float(spec[1]) if len(spec) > 1 else 0.5, **kwargs)
+    if name.startswith("nn") and name[2:].isdigit():
+        return build("nn", **{**kwargs, "hidden": int(name[2:])})
     if name == "nn":
         return NeuralSignal(**{k: v for k, v in kwargs.items()
                                if k in ("epochs", "seed", "hidden", "dropout",
