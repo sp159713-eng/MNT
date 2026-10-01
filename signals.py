@@ -87,10 +87,23 @@ class NeuralSignal:
 
     name = "neural net"
 
-    def __init__(self, epochs: int = 60, seed: int = config.SEED,
-                 hidden: int = 32, dropout: float = 0.2,
-                 learning_rate: float = 1e-3, patience: int = 12,
-                 weight_decay: float = 1e-4, columns=None):
+    def __init__(self, epochs=None, seed: int = config.SEED, hidden=None,
+                 dropout=None, learning_rate=None, patience=None,
+                 weight_decay=None, columns=None, layers=None,
+                 activation=None, loss=None):
+        chosen = config.nn_settings()
+        epochs = chosen["epochs"] if epochs is None else epochs
+        hidden = chosen["hidden"] if hidden is None else hidden
+        dropout = chosen["dropout"] if dropout is None else dropout
+        learning_rate = (chosen["learning_rate"] if learning_rate is None
+                         else learning_rate)
+        patience = chosen["patience"] if patience is None else patience
+        weight_decay = (chosen["weight_decay"] if weight_decay is None
+                        else weight_decay)
+        self.layers = chosen["layers"] if layers is None else layers
+        self.activation = chosen["activation"] if activation is None else activation
+        self.loss = chosen["loss"] if loss is None else loss
+        self.minutes = chosen["minutes"]
         self.epochs = epochs
         self.seed = seed
         self.hidden = hidden
@@ -110,7 +123,11 @@ class NeuralSignal:
             train_panel, val_panel, hidden=self.hidden, epochs=self.epochs,
             learning_rate=self.learning_rate, dropout=self.dropout,
             patience=self.patience, seed=self.seed,
-            weight_decay=self.weight_decay, columns=self.columns, quiet=True)
+            weight_decay=self.weight_decay, columns=self.columns,
+            layers=getattr(self, "layers", 2),
+            activation=getattr(self, "activation", "gelu"),
+            loss=getattr(self, "loss", "mse"),
+            minutes=getattr(self, "minutes", 0), quiet=True)
 
     def predict(self, panel: pd.DataFrame) -> np.ndarray:
         import model as model_module

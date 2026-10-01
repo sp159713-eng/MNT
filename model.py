@@ -44,6 +44,8 @@ from __future__ import annotations
 import argparse
 import os
 
+import time
+
 import numpy as np
 import pandas as pd
 import torch
@@ -114,6 +116,24 @@ def rank_ic(predictions: np.ndarray, targets: np.ndarray,
     return float(per_date.mean()), t_stat, len(per_date)
 
 
+ACTIVATIONS = {"gelu": nn.GELU, "relu": nn.ReLU, "silu": nn.SiLU}
+LOSSES = ("mse", "huber", "corr")
+
+
+def _corr_loss(prediction, target):
+    p = prediction - prediction.mean()
+    t = target - target.mean()
+    return -(p * t).sum() / (p.norm() * t.norm() + 1e-8)
+
+
+def _loss_function(name):
+    if name == "huber":
+        return nn.HuberLoss(delta=0.5)
+    if name == "corr":
+        return _corr_loss
+    return nn.MSELoss()
+
+
 class Ranker(nn.Module):
     """A deliberately small MLP.
 
@@ -129,19 +149,17 @@ class Ranker(nn.Module):
     observations is a reason to be more careful about capacity, not less.
     """
 
-    def __init__(self, n_features: int, hidden: int = 32, dropout: float = 0.2):
+    def __init__(self, n_features: int, hidden: int = 32, dropout: float = 0.2,
+                 layers: int = 2, activation: str = "gelu"):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(n_features, hidden),
-            nn.LayerNorm(hidden),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden, hidden // 2),
-            nn.LayerNorm(hidden // 2),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(hidden // 2, 1),
-        )
+        blocks, width = [], n_features
+        for depth in range(layers):
+            size = max(4, hidden // (2 ** depth))
+            blocks += [nn.Linear(width, size), nn.LayerNorm(size),
+                       ACTIVATIONS[activation](), nn.Dropout(dropout)]
+            width = size
+        blocks.append(nn.Linear(width, 1))
+        self.net = nn.Sequential(*blocks)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.net(x).squeeze(-1)
@@ -158,7 +176,8 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
           learning_rate: float = 1e-3, dropout: float = 0.2,
           patience: int = 12, seed: int = config.SEED,
           weight_decay: float = 1e-4, columns=None,
-          quiet: bool = False) -> tuple[Ranker, dict]:
+          layers: int = 2, activation: str = "gelu", loss: str = "mse",
+          minutes: float = 0, quiet: bool = False) -> tuple[Ranker, dict]:
     """Fit, early-stopping on validation rank IC. Returns the best model seen.
 
     `columns` names the inputs. None keeps all thirty-nine, which is what
@@ -178,16 +197,19 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
     y_val_raw = val_panel["target_excess"].to_numpy()
     val_dates = val_panel["timestamp"].to_numpy()
 
-    model = Ranker(len(columns), hidden, dropout)
+    model = Ranker(len(columns), hidden, dropout, layers, activation)
     model.columns = columns
     optimiser = torch.optim.AdamW(model.parameters(), lr=learning_rate,
                                   weight_decay=weight_decay)
-    loss_function = nn.MSELoss()
+    loss_function = _loss_function(loss)
 
     best_ic, best_state, best_epoch, stale = -np.inf, None, 0, 0
     n = len(x_train)
 
+    started = time.monotonic()
     for epoch in range(1, epochs + 1):
+        if minutes and time.monotonic() - started > minutes * 60:
+            break
         model.train()
         order = torch.randperm(n)
         total = 0.0

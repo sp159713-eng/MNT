@@ -103,6 +103,7 @@ def settings(args) -> dict:
         "columns": getattr(args, "columns", "model"),
         "drop": getattr(args, "drop", ""),
         "add": getattr(args, "add", ""),
+        "nn": config.nn_settings() if "nn" in (args.signal or "") else None,
         "hidden": getattr(args, "hidden", None),
         "recent_first": bool(getattr(args, "recent_first", False)),
         "cut_after": getattr(args, "cut_after", None),

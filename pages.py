@@ -2248,6 +2248,10 @@ class TrainingPage(Page):
         self.progress = ttk.Progressbar(self, mode="indeterminate",
                                         style="TProgressbar")
 
+        from nncard import NNCard
+
+        NNCard(self).pack(fill="x", pady=(0, 14))
+
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
         self.tiles = {}

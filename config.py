@@ -246,6 +246,35 @@ SIGNALS = (("lightgbm",) + tuple(f"gbm{n}" for n in GBM_PRESETS)
 DEFAULT_SIGNAL = "lightgbm"
 HOLDOUT_FROM = 2025
 
+NN_DEFAULTS = {"hidden": 32, "layers": 2, "dropout": 0.2, "learning_rate": 1e-3,
+               "epochs": 60, "patience": 12, "weight_decay": 1e-4,
+               "activation": "gelu", "loss": "mse", "minutes": 0}
+NN_CHOICES = {"activation": ("gelu", "relu", "silu"),
+              "loss": ("mse", "huber", "corr")}
+
+
+def nn_settings() -> dict:
+    import json
+
+    try:
+        with open(os.path.join(MODEL_DIR, "ui.json"), encoding="utf-8") as handle:
+            saved = json.load(handle).get("nn") or {}
+    except Exception:
+        saved = {}
+    values = dict(NN_DEFAULTS)
+    for key, default in NN_DEFAULTS.items():
+        if key not in saved:
+            continue
+        if key in NN_CHOICES:
+            if saved[key] in NN_CHOICES[key]:
+                values[key] = saved[key]
+            continue
+        try:
+            values[key] = type(default)(saved[key])
+        except (TypeError, ValueError):
+            pass
+    return values
+
 
 def _remembered_signal() -> str:
     """The Settings choice, read straight from the preferences file.
