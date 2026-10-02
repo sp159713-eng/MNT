@@ -90,8 +90,8 @@ class NeuralSignal:
     def __init__(self, epochs=None, seed: int = config.SEED, hidden=None,
                  dropout=None, learning_rate=None, patience=None,
                  weight_decay=None, columns=None, layers=None,
-                 activation=None, loss=None, minutes=None):
-        chosen = config.nn_settings()
+                 activation=None, loss=None, minutes=None, preset=None):
+        chosen = config.nn_settings(preset)
         epochs = chosen["epochs"] if epochs is None else epochs
         hidden = chosen["hidden"] if hidden is None else hidden
         dropout = chosen["dropout"] if dropout is None else dropout
@@ -427,12 +427,16 @@ def build(name: str, **kwargs):
                            float(spec[1]) if len(spec) > 1 else 0.5, **kwargs)
     if name.startswith("nn") and name[2:].isdigit():
         return build("nn", **{**kwargs, "hidden": int(name[2:])})
+    if name.startswith("nn@"):
+        if name[3:] not in config.nn_presets():
+            raise ValueError(f"unknown NN preset {name[3:]!r}")
+        return build("nn", **{**kwargs, "preset": name[3:]})
     if name == "nn":
         return NeuralSignal(**{k: v for k, v in kwargs.items()
                                if k in ("epochs", "seed", "hidden", "dropout",
                                         "learning_rate", "patience",
                                         "weight_decay", "columns",
-                                        "minutes")})
+                                        "minutes", "preset")})
     if name == "lightgbm" or name.startswith("gbm"):
         return BoostedSignal(**{k: v for k, v in kwargs.items()
                                 if k in ("seed", "rounds", "columns")})

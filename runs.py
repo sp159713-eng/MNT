@@ -42,6 +42,7 @@ import datetime
 import json
 import math
 import os
+import re
 
 import config
 
@@ -108,7 +109,9 @@ def settings(args) -> dict:
         "extra_train": getattr(args, "extra_train", None),
         "extra_top_liquid": getattr(args, "extra_top_liquid", None),
         "nn_budget": getattr(args, "nn_budget", None),
-        "nn": config.nn_settings() if "nn" in (args.signal or "") else None,
+        "nn": (config.nn_settings(
+            (re.search(r"nn@([\w-]+)", args.signal or "") or [None, None])[1])
+            if "nn" in (args.signal or "") else None),
         "hidden": getattr(args, "hidden", None),
         "recent_first": bool(getattr(args, "recent_first", False)),
         "cut_after": getattr(args, "cut_after", None),

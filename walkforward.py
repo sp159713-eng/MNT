@@ -151,7 +151,7 @@ def main() -> None:
     parser.add_argument("--epochs", type=int, default=None)
     parser.add_argument("--nn-budget", type=float, default=None)
     parser.add_argument("--signal", default=config.PRODUCTION_SIGNAL,
-                        type=lambda v: v if (v in config.SIGNALS or v.startswith(("blend:", "xgb", "ens"))) else parser.error(f"invalid signal {v!r}"),
+                        type=lambda v: v if (v in config.SIGNALS or v.startswith(("blend:", "xgb", "ens", "nn@"))) else parser.error(f"invalid signal {v!r}"),
                         help="which model generates the ranking; defaults to "
                              "whatever production trades")
     parser.add_argument("--max-context", type=int, default=8000,

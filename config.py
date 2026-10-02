@@ -254,14 +254,29 @@ NN_CHOICES = {"activation": ("gelu", "relu", "silu"),
               "loss": ("mse", "huber", "corr")}
 
 
-def nn_settings() -> dict:
+def nn_presets() -> dict:
     import json
 
     try:
         with open(os.path.join(MODEL_DIR, "ui.json"), encoding="utf-8") as handle:
-            saved = json.load(handle).get("nn") or {}
+            data = json.load(handle)
     except Exception:
-        saved = {}
+        data = {}
+    presets = data.get("nn_presets")
+    presets = dict(presets) if isinstance(presets, dict) else {}
+    if "default" not in presets:
+        presets["default"] = data.get("nn") or {}
+    return presets
+
+
+def nn_preset_names() -> list:
+    return ["default"] + sorted(n for n in nn_presets() if n != "default")
+
+
+def nn_settings(name: str | None = None) -> dict:
+    import json
+
+    saved = nn_presets().get(name or "default") or {}
     if os.environ.get("MNT_NN_JSON"):
         saved = {**saved, **json.loads(os.environ["MNT_NN_JSON"])}
     values = dict(NN_DEFAULTS)

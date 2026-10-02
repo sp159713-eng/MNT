@@ -2249,10 +2249,7 @@ class TrainingPage(Page):
         import theme
 
         self.header_row = row
-        self.model_labels = {
-            f"Live model ({config.PRODUCTION_SIGNAL})": None,
-            "nn (NN card settings)": "nn",
-            "blend:nn+mom_252": "blend:nn+mom_252"}
+        self.model_labels = self._model_options()
         saved = theme.preferences().get("train_signal")
         self.model_choice = tk.StringVar(value=next(
             (label for label, name in self.model_labels.items()
@@ -2277,11 +2274,14 @@ class TrainingPage(Page):
         if importlib.util.find_spec("torch") is not None:
             from nncard import NNCard
 
-            NNCard(self).pack(fill="x", pady=(0, 14))
-            if True:
-                from gpucard import GPUCard
+            self.nn_card = NNCard(self)
+            self.nn_card.pack(fill="x", pady=(0, 14))
+            from gpucard import GPUCard
 
-                GPUCard(self, self.app).pack(fill="x", pady=(0, 14))
+            self.gpu_card = GPUCard(self, self.app)
+            self.gpu_card.pack(fill="x", pady=(0, 14))
+            self.nn_card.listeners.append(self._presets_changed)
+            self.nn_card.listeners.append(self.gpu_card.refresh_presets)
 
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
@@ -2335,6 +2335,24 @@ class TrainingPage(Page):
         self.busy = False
         self.lines = []
         self.shown = 0
+
+    def _model_options(self) -> dict:
+        import config
+
+        options = {f"Live model ({config.PRODUCTION_SIGNAL})": None}
+        for name in config.nn_preset_names():
+            tag = "nn" if name == "default" else f"nn@{name}"
+            options[f"NN: {name}"] = tag
+            options[f"NN blend: {name}"] = f"blend:{tag}+mom_252"
+        return options
+
+    def _presets_changed(self) -> None:
+        keep = self._model_name()
+        self.model_labels = self._model_options()
+        self.model_box.config(values=list(self.model_labels))
+        self.model_choice.set(next(
+            (label for label, name in self.model_labels.items()
+             if name and name == keep), next(iter(self.model_labels))))
 
     def _model_name(self):
         return self.model_labels.get(self.model_choice.get())

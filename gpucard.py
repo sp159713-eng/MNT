@@ -42,17 +42,26 @@ class GPUCard(Card):
         self.content = tk.Frame(self.body, bg=Palette.panel)
         self.opened = False
         saved = theme.preferences().get("gpu_form") or {}
-        form = {"widths": "275, 590", "seeds": "3", "data": "India + US",
+        form = {"presets": ["default"], "seeds": "3", "data": "India + US",
                 "top": "1000", "hours": "8", "delivery": 1, "reference": 1,
                 "workspace": gpujob.DEFAULT_WORKSPACE, **saved}
 
+        self.preset_vars = {}
+        self.chosen = set(form["presets"])
+        row = tk.Frame(self.content, bg=Palette.panel)
+        row.pack(fill="x", pady=(0, 4))
+        tk.Label(row, text="NN presets", bg=Palette.panel, fg=Palette.muted,
+                 font=self.f["small"]).pack(side="left", padx=(0, 10))
+        self.preset_row = tk.Frame(row, bg=Palette.panel)
+        self.preset_row.pack(side="left", fill="x", expand=True)
+        self._build_presets()
         grid = tk.Frame(self.content, bg=Palette.panel)
         grid.pack(fill="x")
         for column in range(6):
             grid.grid_columnconfigure(column, weight=1, uniform="gpu")
-        fields = (("widths", "NN widths"), ("seeds", "seeds (1-5)"),
-                  ("hours", "hours (1-11.5)"), ("data", "data"),
-                  ("top", "US top-N"), ("workspace", "workspace"))
+        fields = (("seeds", "seeds (1-5)"), ("hours", "hours (1-11.5)"),
+                  ("data", "data"), ("top", "US top-N"),
+                  ("workspace", "workspace"))
         for index, (key, label) in enumerate(fields):
             row, column = divmod(index, 3)
             tk.Label(grid, text=label, bg=Palette.panel, fg=Palette.muted,
@@ -140,6 +149,35 @@ class GPUCard(Card):
             wraplength=max(200, e.width - 8)))
         return label
 
+    def _build_presets(self) -> None:
+        for child in self.preset_row.winfo_children():
+            child.destroy()
+        names = config.nn_preset_names()
+        self.chosen = {n for n in self.chosen if n in names}
+        self.preset_vars = {}
+        for index, name in enumerate(names):
+            var = tk.IntVar(value=int(name in self.chosen))
+            var.trace_add("write", lambda *_: self._presets_ticked())
+            box = tk.Checkbutton(self.preset_row, text=name, variable=var,
+                                 bg=Palette.panel, fg=Palette.text,
+                                 selectcolor=Palette.panel_high,
+                                 activebackground=Palette.panel,
+                                 activeforeground=Palette.text,
+                                 font=self.f["small"], bd=0,
+                                 highlightthickness=0, anchor="w")
+            box.grid(row=index // 4, column=index % 4, sticky="w", padx=(0, 14))
+            self.preset_vars[name] = var
+            if not self.ready:
+                box.config(state="disabled")
+
+    def _presets_ticked(self) -> None:
+        self.chosen = {n for n, v in self.preset_vars.items() if v.get()}
+        self._recount()
+
+    def refresh_presets(self) -> None:
+        self._build_presets()
+        self._recount()
+
     def _toggle(self, force=None) -> None:
         self.opened = (not self.opened) if force is None else force
         if self.opened:
@@ -159,14 +197,8 @@ class GPUCard(Card):
 
     def _params(self):
         errors = []
-        try:
-            widths = [int(w) for w in self.vars["widths"].get().replace(
-                ";", ",").split(",") if w.strip()]
-            if not widths or any(not 4 <= w <= 2048 for w in widths):
-                raise ValueError
-        except ValueError:
-            widths = []
-            errors.append("widths")
+        presets = [(n, config.nn_settings(n))
+                   for n in config.nn_preset_names() if n in self.chosen]
         try:
             seeds = int(self.vars["seeds"].get())
             if not 1 <= seeds <= 5:
@@ -190,32 +222,29 @@ class GPUCard(Card):
             errors.append("US top-N")
         if not self.vars["workspace"].get().strip():
             errors.append("workspace")
-        params = {"widths": widths, "seeds": seeds, "hours": hours,
+        params = {"presets": presets, "seeds": seeds, "hours": hours,
                   "top": top, "us": self.vars["data"].get() == "India + US",
                   "delivery": bool(self.vars["delivery"].get()),
                   "reference": bool(self.vars["reference"].get()),
                   "workspace": self.vars["workspace"].get().strip()}
-        if not params["widths"] and not params["reference"]:
+        if not params["presets"] and not params["reference"]:
             errors.append("nothing to run")
         return params, errors
 
     def _recount(self) -> None:
         params, errors = self._params()
-        settings = config.nn_settings()
         try:
             counts = ", ".join(
-                f"{w}: {parameter_count({**settings, 'hidden': w}):,}"
-                for w in params["widths"])
+                f"{n}: {parameter_count(v):,}" for n, v in params["presets"])
         except Exception:
             counts = "?"
         self.count_note.config(
-            text=f"parameters per width (NN card settings, {settings['layers']} "
-                 f"layers) - {counts or 'none'}")
+            text=f"parameters per checked preset - {counts or 'none'}")
         if errors:
             self.estimate_note.config(text=f"check: {', '.join(errors)}",
                                       fg=Palette.warn)
             return
-        groups = gpujob.make_groups(params["widths"], params["us"],
+        groups = gpujob.make_groups(params["presets"], params["us"],
                                     params["top"], params["delivery"],
                                     params["reference"])
         runs, wall = gpujob.estimate(groups, params["seeds"], params["us"])
@@ -276,7 +305,7 @@ class GPUCard(Card):
                                     "first", fg=Palette.warn)
             return
         theme.save_key("gpu_form", {
-            "widths": self.vars["widths"].get(), "seeds": self.vars["seeds"].get(),
+            "presets": sorted(self.chosen), "seeds": self.vars["seeds"].get(),
             "hours": self.vars["hours"].get(), "data": self.vars["data"].get(),
             "top": self.vars["top"].get(),
             "delivery": self.vars["delivery"].get(),
@@ -286,7 +315,7 @@ class GPUCard(Card):
         self._toggle(True)
         self.start_button.set_enabled(False)
         self._show([])
-        settings = config.nn_settings()
+        settings = dict(config.NN_DEFAULTS)
         threading.Thread(target=self._launch, args=(params, settings),
                          daemon=True).start()
 

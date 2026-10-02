@@ -207,8 +207,21 @@ def save_key(key: str, value) -> None:
     _write(dict(preferences(), **{key: value}))
 
 
-def save_nn(values: dict) -> None:
-    _write(dict(preferences(), nn=values))
+def save_nn(values: dict, name: str = "default") -> None:
+    import config
+
+    presets = config.nn_presets()
+    presets[name] = values
+    extra = {"nn": values} if name == "default" else {}
+    _write(dict(preferences(), nn_presets=presets, **extra))
+
+
+def delete_nn(name: str) -> None:
+    import config
+
+    presets = config.nn_presets()
+    presets.pop(name, None)
+    _write(dict(preferences(), nn_presets=presets))
 
 
 def save_signal(name: str) -> None:

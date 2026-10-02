@@ -80,7 +80,7 @@ def clamp_hours(hours: float) -> tuple[float, float, float]:
     return hours, max(0.5, hours - 1.0), hours - 0.5
 
 
-def make_groups(widths, us: bool, top: int, delivery: bool, reference: bool):
+def make_groups(presets, us: bool, top: int, delivery: bool, reference: bool):
     extra = []
     if delivery:
         extra += ["--add", DELIVERY]
@@ -90,8 +90,8 @@ def make_groups(widths, us: bool, top: int, delivery: bool, reference: bool):
     groups = []
     if reference:
         groups.append(("ref_blend", REFERENCE, None, list(extra)))
-    for width in widths:
-        groups.append((f"nn{width}", "nn", {"hidden": int(width)}, list(extra)))
+    for name, values in presets:
+        groups.append((name, "nn", nn_dict(values), list(extra)))
     return groups
 
 
@@ -275,7 +275,7 @@ def build_job(workspace: str, params: dict, settings: dict, user: str) -> dict:
     slug = f"mnt-gui-{stamp}"
     folder = os.path.join(workspace, "gui_jobs", stamp).replace("\\", "/")
     os.makedirs(folder, exist_ok=True)
-    groups = make_groups(params["widths"], params["us"], params["top"],
+    groups = make_groups(params["presets"], params["us"], params["top"],
                          params["delivery"], params["reference"])
     seeds = list(range(7, 7 + int(params["seeds"])))
     tops = [int(params["top"])] if params["us"] else []

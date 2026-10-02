@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tkinter as tk
 from tkinter import ttk
 
@@ -34,6 +35,36 @@ class NNCard(Card):
                          "used by every nn fit, backtest and Auto model run")
         self.f = fonts()
         self.vars = {}
+        self.listeners = []
+        self.name = tk.StringVar(value="default")
+        top = tk.Frame(self.body, bg=Palette.panel)
+        top.pack(fill="x", pady=(0, 6))
+        tk.Label(top, text="NN", bg=Palette.panel, fg=Palette.muted,
+                 font=self.f["small"]).pack(side="left", padx=(0, 8))
+        self.picker = ttk.Combobox(top, textvariable=self.name,
+                                   state="readonly", width=24,
+                                   values=config.nn_preset_names(),
+                                   font=self.f["mono_small"])
+        self.picker.pack(side="left")
+        self.picker.bind("<<ComboboxSelected>>", lambda _e: self._switch())
+        self.new_button = Button(top, "New NN", self._ask, kind="ghost")
+        self.new_button.pack(side="left", padx=(8, 0))
+        self.delete_button = Button(top, "Delete", self.delete, kind="ghost")
+        self.delete_button.pack(side="left", padx=(8, 0))
+        self.ask_row = tk.Frame(self.body, bg=Palette.panel)
+        tk.Label(self.ask_row, text="name", bg=Palette.panel, fg=Palette.muted,
+                 font=self.f["small"]).pack(side="left", padx=(0, 8))
+        self.new_name = tk.StringVar()
+        self.new_entry = tk.Entry(
+            self.ask_row, textvariable=self.new_name, width=24,
+            bg=Palette.panel_high, fg=Palette.text,
+            insertbackground=Palette.text, relief="flat",
+            font=self.f["mono_small"])
+        self.new_entry.pack(side="left")
+        self.new_entry.bind("<Return>", lambda _e: self._create())
+        Button(self.ask_row, "OK", self._create).pack(side="left", padx=(8, 0))
+        Button(self.ask_row, "Cancel", self._cancel, kind="ghost").pack(
+            side="left", padx=(8, 0))
         grid = tk.Frame(self.body, bg=Palette.panel)
         grid.pack(fill="x")
         for column in range(6):
@@ -65,7 +96,61 @@ class NNCard(Card):
         Button(footer, "Save", self.save).pack(side="right")
         Button(footer, "Defaults", self.defaults, kind="ghost").pack(
             side="right", padx=(0, 8))
-        self._fill(config.nn_settings())
+        self._fill(config.nn_settings(self.name.get()))
+        self._buttons()
+
+    def _buttons(self) -> None:
+        self.delete_button.set_enabled(self.name.get() != "default")
+
+    def _changed(self) -> None:
+        for listener in self.listeners:
+            listener()
+
+    def _switch(self) -> None:
+        self._fill(config.nn_settings(self.name.get()))
+        self._buttons()
+        self._count()
+
+    def _ask(self) -> None:
+        self.new_name.set("")
+        self.ask_row.pack(fill="x", pady=(0, 6), after=self.picker.master)
+        self.new_entry.focus_set()
+
+    def _cancel(self) -> None:
+        self.ask_row.pack_forget()
+
+    def _create(self) -> None:
+        text = self.new_name.get().strip()
+        if not text or not re.fullmatch(r"[A-Za-z0-9_-]{1,24}", text):
+            self.note.config(text="name: 1-24 letters, digits, - or _",
+                             fg=Palette.bad)
+            return
+        if text in config.nn_preset_names():
+            self.note.config(text=f"'{text}' already exists", fg=Palette.bad)
+            return
+        import theme as theme_module
+
+        theme_module.save_nn(dict(config.NN_DEFAULTS), text)
+        self.ask_row.pack_forget()
+        self.picker.config(values=config.nn_preset_names())
+        self.name.set(text)
+        self._switch()
+        self.note.config(text=f"created '{text}' from the defaults",
+                         fg=Palette.good)
+        self._changed()
+
+    def delete(self) -> None:
+        import theme as theme_module
+
+        name = self.name.get()
+        if name == "default":
+            return
+        theme_module.delete_nn(name)
+        self.picker.config(values=config.nn_preset_names())
+        self.name.set("default")
+        self._switch()
+        self.note.config(text=f"deleted '{name}'", fg=Palette.muted)
+        self._changed()
 
     def _fill(self, values: dict) -> None:
         for key, var in self.vars.items():
@@ -110,6 +195,7 @@ class NNCard(Card):
             self.note.config(text=f"not saved, check: {', '.join(errors)}",
                              fg=Palette.bad)
             return
-        theme_module.save_nn(values)
-        self.note.config(text=f"saved - {parameter_count(values):,} parameters",
+        theme_module.save_nn(values, self.name.get())
+        self._changed()
+        self.note.config(text=f"saved {self.name.get()} - {parameter_count(values):,} parameters",
                          fg=Palette.good)
