@@ -47,6 +47,7 @@ import pandas as pd
 import backtest as backtest_module
 import config
 import costs as costs_module
+import data as data_module
 import features as features_module
 import metrics as metrics_module
 import runs as runs_module
@@ -171,6 +172,8 @@ def main() -> None:
     parser.add_argument("--add", default="")
     parser.add_argument("--universe", default=None)
     parser.add_argument("--top-liquid", type=int, default=None)
+    parser.add_argument("--extra-train", default=None)
+    parser.add_argument("--extra-top-liquid", type=int, default=None)
     parser.add_argument("--cut-after", type=int, default=None)
     parser.add_argument("--cut-below", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=None,
@@ -198,7 +201,21 @@ def main() -> None:
         with open(args.universe, encoding="utf-8") as handle:
             roster = json.load(handle)["symbols"]
         print(f"universe file: {len(roster)} names, top {args.top_liquid} liquid per day")
-    panel = features_module.cached_panel(roster, top_liquid=args.top_liquid)
+    extra = None
+    if args.extra_train:
+        import json
+        with open(args.extra_train, encoding="utf-8") as handle:
+            extra = json.load(handle)["symbols"]
+        print(f"extra training file: {len(extra)} names, top "
+              f"{args.extra_top_liquid} liquid per day (train/val only)")
+    panel = features_module.cached_panel(roster, top_liquid=args.top_liquid,
+                                         extra_symbols=extra,
+                                         extra_top_liquid=args.extra_top_liquid)
+    extra_panel = None
+    if extra:
+        is_extra = panel["symbol"].astype(str).str.startswith(data_module.US_PREFIX)
+        extra_panel, panel = panel[is_extra], panel[~is_extra].reset_index(drop=True)
+        print(f"panel rows: India {len(panel)}, extra {len(extra_panel)}")
 
     # In fast mode the trailing average moves from the predictions to the
     # features, and every date the book never consults is dropped. Both are
@@ -213,6 +230,8 @@ def main() -> None:
     windows, every = WINDOWS, args.every
     if args.fast:
         panel = features_module.smooth_features(panel, args.feature_smooth)
+        if extra_panel is not None:
+            extra_panel = features_module.smooth_features(extra_panel, args.feature_smooth)
         windows, every = FAST_WINDOWS, 1
 
     signal_kwargs = {"max_context": args.max_context, "columns": columns}
@@ -259,9 +278,24 @@ def main() -> None:
         minimum = 60 if args.fast else 200
         if len(val_panel) < minimum or len(test_panel) < minimum:
             continue
+        fit_train, fit_val = train_panel, val_panel
+        if extra_panel is not None:
+            extra_train = cut(extra_panel, None, train_end, horizon)
+            extra_val = cut(extra_panel, train_end, val_end, horizon)
+            if args.fast:
+                extra_val = features_module.thin_to_rebalance(extra_val, args.every)
+            fit_train = pd.concat([train_panel, extra_train]).sort_values(
+                ["timestamp", "symbol"], kind="stable").reset_index(drop=True)
+            fit_val = pd.concat([val_panel, extra_val]).sort_values(
+                ["timestamp", "symbol"], kind="stable").reset_index(drop=True)
+        if extra_panel is not None:
+            print(f"fold {test_end.year}: train rows India {len(train_panel)} / "
+                  f"extra {len(fit_train) - len(train_panel)}; val India "
+                  f"{len(val_panel)} / extra {len(fit_val) - len(val_panel)}; "
+                  f"test India {len(test_panel)} / extra 0", flush=True)
 
         signal = signals_module.build(args.signal, **signal_kwargs)
-        signal.fit(train_panel, val_panel)
+        signal.fit(fit_train, fit_val)
         chosen = choose(val_panel, signal.predict(val_panel),
                         every, args.capital, args.slippage, args.segment,
                         windows)

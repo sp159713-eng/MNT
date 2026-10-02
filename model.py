@@ -53,6 +53,7 @@ import torch.nn as nn
 
 import config
 import features as features_module
+from metrics import market_dates
 # The target, the IC and the baselines moved to metrics.py when LightGBM became
 # production - none of them were ever specific to a network, and having the
 # boosted model import "the neural network" to find its own label was backwards.
@@ -174,7 +175,7 @@ class Ranker(nn.Module):
 
 def rank_target(panel: pd.DataFrame) -> np.ndarray:
     """Forward excess return -> per-date rank in [-1, 1]. The training label."""
-    ranked = panel.groupby("timestamp")["target_excess"].rank(pct=True)
+    ranked = panel.groupby(market_dates(panel))["target_excess"].rank(pct=True)
     return ((ranked - 0.5) * 2.0).to_numpy(dtype=np.float32)
 
 
@@ -207,7 +208,7 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
     x_val = torch.tensor(val_panel[columns].to_numpy(dtype=np.float32),
                          device=device)
     y_val_raw = val_panel["target_excess"].to_numpy()
-    val_dates = val_panel["timestamp"].to_numpy()
+    val_dates = market_dates(val_panel)
 
     model = Ranker(len(columns), hidden, dropout, layers, activation).to(device)
     model.columns = columns
@@ -261,7 +262,7 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
     with torch.no_grad():
         fitted = model(x_train[torch.as_tensor(sample, device=device)]).cpu().numpy()
     train_ic, _, _ = rank_ic(fitted, train_panel["target_excess"].to_numpy()[sample],
-                             train_panel["timestamp"].to_numpy()[sample])
+                             market_dates(train_panel)[sample])
     model.to("cpu")
     return model, {"best_epoch": best_epoch, "best_val_ic": best_ic,
                    "train_ic": train_ic, "columns": len(columns)}

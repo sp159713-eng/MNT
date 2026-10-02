@@ -18,6 +18,14 @@ import pandas as pd
 import config
 
 
+def market_dates(panel: pd.DataFrame) -> np.ndarray:
+    dates = panel["timestamp"].to_numpy()
+    us = panel["symbol"].astype(str).str.startswith("US:").to_numpy()
+    if not us.any():
+        return dates
+    return np.where(us, dates + np.timedelta64(1, "ns"), dates)
+
+
 def rank_target(panel: pd.DataFrame) -> np.ndarray:
     """Forward excess return -> per-date rank in [-1, 1]. The training label.
 
@@ -31,7 +39,7 @@ def rank_target(panel: pd.DataFrame) -> np.ndarray:
       Relevance. The book buys the top six. It never asks how much a stock will
       return, only whether it beats the other twenty-nine.
     """
-    ranked = panel.groupby("timestamp")["target_excess"].rank(pct=True)
+    ranked = panel.groupby(market_dates(panel))["target_excess"].rank(pct=True)
     return ((ranked - 0.5) * 2.0).to_numpy(dtype=np.float32)
 
 

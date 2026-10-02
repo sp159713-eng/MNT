@@ -105,6 +105,8 @@ def settings(args) -> dict:
         "add": getattr(args, "add", ""),
         "universe": getattr(args, "universe", None),
         "top_liquid": getattr(args, "top_liquid", None),
+        "extra_train": getattr(args, "extra_train", None),
+        "extra_top_liquid": getattr(args, "extra_top_liquid", None),
         "nn_budget": getattr(args, "nn_budget", None),
         "nn": config.nn_settings() if "nn" in (args.signal or "") else None,
         "hidden": getattr(args, "hidden", None),

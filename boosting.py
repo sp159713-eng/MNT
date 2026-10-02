@@ -89,6 +89,14 @@ def classifier(**overrides) -> lgb.LGBMClassifier:
     return lgb.LGBMClassifier(**params(**overrides))
 
 
+def _eval_kwargs(model, x_val, y_val) -> dict:
+    import inspect
+
+    if "eval_X" in inspect.signature(type(model).fit).parameters:
+        return {"eval_X": x_val, "eval_y": y_val}
+    return {"eval_set": [(x_val, y_val)]}
+
+
 def fit(model, x_train, y_train, x_val, y_val, metric: str = "l2",
         sample_weight=None):
     """Fit with early stopping on the validation split.
@@ -110,11 +118,7 @@ def fit(model, x_train, y_train, x_val, y_val, metric: str = "l2",
     model.fit(
         x_train, y_train,
         sample_weight=sample_weight,
-        # eval_X/eval_y rather than eval_set: lightgbm 4.7.0 deprecated
-        # eval_set in favour of these, and the old spelling now emits
-        # LGBMDeprecationWarning on every fit this project makes. NNS's copy
-        # was already correct; this one had lagged behind it.
-        eval_X=x_val, eval_y=y_val,
+        **_eval_kwargs(model, x_val, y_val),
         eval_metric=metric,
         callbacks=[lgb.early_stopping(config.GBM_EARLY_STOPPING_ROUNDS,
                                       verbose=False)],

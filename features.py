@@ -240,8 +240,16 @@ def liquid_membership(frames: dict, top: int) -> pd.DataFrame:
     return turnover.rank(axis=1, ascending=False, method="first") <= top
 
 
+def _equal_weight_close(frames: dict) -> pd.Series:
+    daily = pd.DataFrame({symbol: bars["close"].pct_change(fill_method=None)
+                          for symbol, bars in frames.items()})
+    mean = daily.clip(-0.5, 0.5).mean(axis=1).fillna(0.0)
+    return (1.0 + mean).cumprod()
+
+
 def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
-                start: str | None = None, top_liquid: int | None = None) -> pd.DataFrame:
+                start: str | None = None, top_liquid: int | None = None,
+                extra_top_liquid: int | None = None) -> pd.DataFrame:
     """The long-format panel: one row per (date, symbol), features plus target."""
     symbols = symbols or config.UNIVERSE
     horizon = horizon or config.TARGET_HORIZON
@@ -264,20 +272,29 @@ def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
     except Exception as error:                              # noqa: BLE001
         print(f"  no benchmark ({error}); index-relative features disabled")
 
-    member = liquid_membership(frames, top_liquid) if top_liquid else None
+    us_frames = {s: b for s, b in frames.items() if data_module.is_us(s)}
+    in_frames = {s: b for s, b in frames.items() if s not in us_frames}
+    member = liquid_membership(in_frames, top_liquid) if top_liquid and in_frames else None
+    us_member = (liquid_membership(us_frames, extra_top_liquid)
+                 if extra_top_liquid and us_frames else None)
+    us_market = _equal_weight_close(us_frames) if us_frames else None
     rows = []
     for symbol, bars in frames.items():
         if len(bars) < 300:
             print(f"  skipping {symbol}: only {len(bars)} bars")
             continue
-        features = build_features(bars, market)
+        is_us = symbol in us_frames
+        member_of = us_member if is_us else member
+        if member_of is not None and not member_of[symbol].any():
+            continue
+        features = build_features(bars, us_market if is_us else market)
         features["symbol"] = symbol
         # The label. shift(-horizon) is the only place the future is touched,
         # and it is touched on purpose.
         forward = bars["close"].shift(-horizon) / bars["close"] - 1.0
         features["target"] = forward
-        if member is not None:
-            keep = member[symbol].reindex(features.index).fillna(False).astype(bool)
+        if member_of is not None:
+            keep = member_of[symbol].reindex(features.index).fillna(False).astype(bool)
             features = features[keep.to_numpy()]
             if features.empty:
                 continue
@@ -303,6 +320,13 @@ def universe_panel(symbols: list[str] | None = None) -> pd.DataFrame:
         drop=True)
 
 
+def date_keys(panel: pd.DataFrame):
+    if not panel["symbol"].astype(str).str.startswith(data_module.US_PREFIX).any():
+        return "timestamp"
+    return [panel["symbol"].astype(str).str.startswith(data_module.US_PREFIX).to_numpy(),
+            "timestamp"]
+
+
 def cross_sectionalize(panel: pd.DataFrame,
                        require_target: bool = True) -> pd.DataFrame:
     """Rank every feature within its date; centre the target within its date.
@@ -314,7 +338,7 @@ def cross_sectionalize(panel: pd.DataFrame,
     """
     panel = panel.dropna(subset=["target"]).copy() if require_target         else panel.copy()
     supplied = len(panel)
-    counts = panel.groupby("timestamp")["symbol"].transform("size")
+    counts = panel.groupby(date_keys(panel))["symbol"].transform("size")
     panel = panel[counts >= 10]
 
     if supplied and panel.empty:
@@ -323,14 +347,15 @@ def cross_sectionalize(panel: pd.DataFrame,
             "against the others on the same day, so it needs at least "
             "10 in the universe - add more in the Universe tab.")
 
-    grouped = panel.groupby("timestamp")
+    keys = date_keys(panel)
+    grouped = panel.groupby(keys)
     if "dollar_vol" in panel.columns:
         liquid = panel["dollar_vol"] >= grouped["dollar_vol"].transform("median")
         for window in (21, 63):
             source = f"mom_{window}"
             if source not in panel.columns:
                 continue
-            by_date = panel["timestamp"]
+            by_date = panel["timestamp"] if isinstance(keys, str) else [keys[0], panel["timestamp"]]
             high = panel[source].where(liquid).groupby(by_date).transform("mean")
             low = panel[source].where(~liquid).groupby(by_date).transform("mean")
             panel[f"liq_spread_{window}"] = high - low
@@ -445,14 +470,22 @@ def _panel_key(symbols: list[str]) -> str:
 
 
 def cached_panel(symbols: list[str] | None = None,
-                 top_liquid: int | None = None) -> pd.DataFrame:
+                 top_liquid: int | None = None,
+                 extra_symbols: list[str] | None = None,
+                 extra_top_liquid: int | None = None) -> pd.DataFrame:
     symbols = list(symbols or config.UNIVERSE)
+    extra = [name if data_module.is_us(name) else data_module.US_PREFIX + name
+             for name in (extra_symbols or [])]
+    symbols += [name for name in extra if name not in symbols]
     tag = f"_top{top_liquid}" if top_liquid else ""
+    if extra:
+        tag += f"_x{extra_top_liquid or 0}"
     path = os.path.join(PANEL_CACHE_DIR, f"panel_{_panel_key(symbols)}{tag}.pkl")
     if os.path.exists(path):
         print(f"panel cache hit: {os.path.basename(path)}")
         return pd.read_pickle(path)
-    panel = cross_sectionalize(build_panel(symbols, top_liquid=top_liquid))
+    panel = cross_sectionalize(build_panel(symbols, top_liquid=top_liquid,
+                                           extra_top_liquid=extra_top_liquid))
     os.makedirs(PANEL_CACHE_DIR, exist_ok=True)
     tmp = path + ".tmp"
     panel.to_pickle(tmp)

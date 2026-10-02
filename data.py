@@ -133,7 +133,17 @@ def clean_bars(frame: pd.DataFrame, symbol: str = "", quiet: bool = True
     return frame
 
 
+US_PREFIX = "US:"
+
+
+def is_us(symbol: str) -> bool:
+    return symbol.startswith(US_PREFIX)
+
+
 def _cache_path(symbol: str, interval: str, unadjusted: bool) -> str:
+    if is_us(symbol):
+        name = "".join("_" if ch in r'\/:*?"<>|' else ch for ch in symbol[len(US_PREFIX):])
+        return os.path.join(CACHE_DIR, "us", f"{name}.csv")
     if os.environ.get("MNT_DATA_SOURCE") == "nse" and interval == "1d" and not unadjusted:
         name = "".join("_" if ch in r'\/:*?"<>|' else ch for ch in symbol)
         candidate = os.path.join(CACHE_DIR, "nse", "adj", f"{name}.csv")
@@ -161,6 +171,9 @@ def fetch(symbol: str, interval: str = "1d", period: str | None = None,
         frame = _memoised(path, symbol, clean, quiet)
         if frame is not None and len(frame):
             return _slice(frame, start, end).copy()
+
+    if is_us(symbol):
+        raise RuntimeError(f"no cached US data for {symbol} at {path}")
 
     import yfinance as yf   # imported late: cache hits should not pay for it
 
