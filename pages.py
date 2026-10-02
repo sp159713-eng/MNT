@@ -2245,6 +2245,30 @@ class TrainingPage(Page):
         tk.Label(row, text="names", bg=Palette.bg, fg=Palette.muted,
                  font=self.f["small"]).pack(side="right", padx=(0, 6))
 
+        import config
+        import theme
+
+        self.header_row = row
+        self.model_labels = {
+            f"Live model ({config.PRODUCTION_SIGNAL})": None,
+            "nn (NN card settings)": "nn",
+            "blend:nn+mom_252": "blend:nn+mom_252"}
+        saved = theme.preferences().get("train_signal")
+        self.model_choice = tk.StringVar(value=next(
+            (label for label, name in self.model_labels.items()
+             if name and name == saved), next(iter(self.model_labels))))
+        self.model_box = ttk.Combobox(
+            row, textvariable=self.model_choice, state="readonly", width=40,
+            values=list(self.model_labels), font=self.f["mono_small"])
+        self.model_box.pack(side="right", padx=(0, 8))
+        tk.Label(row, text="model", bg=Palette.bg, fg=Palette.muted,
+                 font=self.f["small"]).pack(side="right", padx=(0, 6))
+        self.model_note = tk.Label(
+            self, text="", bg=Palette.bg, fg=Palette.muted,
+            font=self.f["small"], anchor="w", justify="left", wraplength=900)
+        self.model_choice.trace_add("write", lambda *_: self._model_changed())
+        self._model_changed(save=False)
+
         self.progress = ttk.Progressbar(self, mode="indeterminate",
                                         style="TProgressbar")
 
@@ -2254,6 +2278,10 @@ class TrainingPage(Page):
             from nncard import NNCard
 
             NNCard(self).pack(fill="x", pady=(0, 14))
+            if True:
+                from gpucard import GPUCard
+
+                GPUCard(self, self.app).pack(fill="x", pady=(0, 14))
 
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
@@ -2307,6 +2335,25 @@ class TrainingPage(Page):
         self.busy = False
         self.lines = []
         self.shown = 0
+
+    def _model_name(self):
+        return self.model_labels.get(self.model_choice.get())
+
+    def _model_changed(self, save: bool = True) -> None:
+        import theme
+
+        name = self._model_name()
+        if save:
+            theme.save_key("train_signal", name)
+        if name:
+            self.model_note.config(
+                text="NN training on this PC's CPU (2-core) is slow - expect "
+                     "a long run. Use Train on GPU (Kaggle) below for real "
+                     "NN work.")
+            self.model_note.pack(fill="x", pady=(0, 10),
+                                 after=self.header_row)
+        else:
+            self.model_note.pack_forget()
 
     def on_show(self) -> None:
         self.refresh()
@@ -2372,9 +2419,11 @@ class TrainingPage(Page):
         self.verdict.config(text="training...", fg=Palette.muted)
 
         count = int(self.names.get())
+        signal_name = self._model_name()
         self.after(200, self._pump)
         self.app.worker.submit(
-            lambda: training_module.run(count, on_log=self.lines.append),
+            lambda: training_module.run(
+                count, signal_name=signal_name, on_log=self.lines.append),
             self._done, self._failed)
 
     def _pump(self) -> None:

@@ -203,6 +203,10 @@ def saved_signal(default: str = "lightgbm") -> str:
     return name if isinstance(name, str) and name else default
 
 
+def save_key(key: str, value) -> None:
+    _write(dict(preferences(), **{key: value}))
+
+
 def save_nn(values: dict) -> None:
     _write(dict(preferences(), nn=values))
 
