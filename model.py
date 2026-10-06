@@ -179,6 +179,28 @@ def rank_target(panel: pd.DataFrame) -> np.ndarray:
     return ((ranked - 0.5) * 2.0).to_numpy(dtype=np.float32)
 
 
+def _ema_avg(averaged, current, count):
+    decay = min(0.999, (1.0 + float(count)) / (10.0 + float(count)))
+    return decay * averaged + (1.0 - decay) * current
+
+
+def _sam_step(model, optimiser, loss_function, x, y, rho: float = 0.05) -> None:
+    params = [p for p in model.parameters() if p.grad is not None]
+    norm = torch.norm(torch.stack([p.grad.norm(2) for p in params]), 2) + 1e-12
+    shifts = []
+    with torch.no_grad():
+        for p in params:
+            e = p.grad * (rho / norm)
+            p.add_(e)
+            shifts.append(e)
+    optimiser.zero_grad()
+    loss_function(model(x), y).backward()
+    with torch.no_grad():
+        for p, e in zip(params, shifts):
+            p.sub_(e)
+    optimiser.step()
+
+
 def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
           hidden: int = 32, epochs: int = 60, batch_size: int = 1024,
           learning_rate: float = 1e-3, dropout: float = 0.2,
@@ -215,6 +237,12 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
     optimiser = torch.optim.AdamW(model.parameters(), lr=learning_rate,
                                   weight_decay=weight_decay)
     loss_function = _loss_function(loss)
+    opt_mode = os.environ.get("MNT_NN_OPT", "adamw")
+    if opt_mode not in ("adamw", "ema", "sam"):
+        raise ValueError(f"MNT_NN_OPT must be adamw, ema or sam, got {opt_mode!r}")
+    averaged = (torch.optim.swa_utils.AveragedModel(model, avg_fn=_ema_avg)
+                if opt_mode == "ema" else None)
+    scored = averaged.module if averaged is not None else model
 
     best_ic, best_state, best_epoch, stale = -np.inf, None, 0, 0
     n = len(x_train)
@@ -231,17 +259,23 @@ def train(train_panel: pd.DataFrame, val_panel: pd.DataFrame,
             optimiser.zero_grad()
             loss = loss_function(model(x_train[index]), y_train[index])
             loss.backward()
-            optimiser.step()
+            if opt_mode == "sam":
+                _sam_step(model, optimiser, loss_function, x_train[index], y_train[index])
+            else:
+                optimiser.step()
+            if averaged is not None:
+                averaged.update_parameters(model)
             total += loss.item() * len(index)
 
         model.eval()
+        scored.eval()
         with torch.no_grad():
-            predictions = model(x_val).cpu().numpy()
+            predictions = scored(x_val).cpu().numpy()
         ic, t_stat, _ = rank_ic(predictions, y_val_raw, val_dates)
 
         if ic > best_ic:
             best_ic, best_epoch, stale = ic, epoch, 0
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.clone() for k, v in scored.state_dict().items()}
         else:
             stale += 1
 
