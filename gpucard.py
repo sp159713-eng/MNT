@@ -45,6 +45,7 @@ class GPUCard(Card):
         form = {"presets": ["default"], "seeds": "3", "data": "India + US",
                 "top": "1000", "hours": "8", "delivery": 1, "reference": 1,
                 "workspace": gpujob.DEFAULT_WORKSPACE, **saved}
+        form["top"] = str(gpujob.clamp_top(form["top"]))
 
         self.preset_vars = {}
         self.chosen = set(form["presets"])
@@ -197,6 +198,7 @@ class GPUCard(Card):
 
     def _params(self):
         errors = []
+        self.clamped = False
         presets = [(n, config.nn_settings(n))
                    for n in config.nn_preset_names() if n in self.chosen]
         try:
@@ -217,6 +219,10 @@ class GPUCard(Card):
             top = int(self.vars["top"].get())
             if top < 1:
                 raise ValueError
+            if top > gpujob.US_TOP_MAX and self.vars["data"].get() == "India + US":
+                top = gpujob.US_TOP_MAX
+                self.vars["top"].set(str(top))
+                self.clamped = True
         except ValueError:
             top = 1000
             errors.append("US top-N")
@@ -315,6 +321,9 @@ class GPUCard(Card):
         self._toggle(True)
         self.start_button.set_enabled(False)
         self._show([])
+        if self.clamped:
+            self._say(f"US top-N lowered to {gpujob.US_TOP_MAX} (larger runs out "
+                      "of memory on Kaggle)", Palette.warn)
         settings = dict(config.NN_DEFAULTS)
         threading.Thread(target=self._launch, args=(params, settings),
                          daemon=True).start()
@@ -367,6 +376,8 @@ class GPUCard(Card):
             code, text = gpujob.kaggle(["datasets", "status", f"{user}/{name}"],
                                        timeout=120)
             if code != 0:
+                if any(err in text for err in ("getaddrinfo failed", "Failed to resolve", "ConnectionError", "Max retries exceeded", "timed out")):
+                    raise RuntimeError(f"network error connecting to Kaggle (check internet connection): {text[-150:]}")
                 raise RuntimeError(
                     f"dataset {user}/{name} not found on Kaggle - upload it "
                     f"first ({text[-120:]})")
@@ -417,7 +428,8 @@ class GPUCard(Card):
         os.makedirs(out, exist_ok=True)
         self._say("downloading output...")
         gpujob.kaggle(["kernels", "output",
-                       f"{self.job['user']}/{self.job['slug']}", "-p", out],
+                       f"{self.job['user']}/{self.job['slug']}", "-p", out,
+                       "--file-pattern", r".*\.(log|json|txt)$"],
                       timeout=1800)
         self._save_job(state="done" if state == "complete" else "failed")
         self._load_folder(out, label=state)
@@ -429,8 +441,14 @@ class GPUCard(Card):
         if rows:
             self._say(f"{label}: {len(rows)} runs from {folder}", Palette.good)
         else:
-            self._say(f"{label}: no results json found in {folder}",
-                      Palette.warn)
+            err = gpujob.load_error_log(folder)
+            if err:
+                self._say(f"{label}: {err}", Palette.bad)
+            else:
+                self._say(f"{label}: kernel ended with status {label} and no "
+                          f"results came down ({folder}); open the kernel on "
+                          "kaggle.com for its log - a crash is usually out of "
+                          "memory, so lower 'US top'", Palette.warn)
 
     def _resume(self) -> None:
         job = theme.preferences().get("gpu_job")

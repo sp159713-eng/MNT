@@ -21,6 +21,8 @@ DELIVERY = "deliv_21,deliv_surprise"
 REFERENCE = "blend:lightgbm+mom_252"
 KERNEL_CAP_H = 12.0
 PARALLEL = 5
+US_TOP_MAX = 2000
+US_TOP_DEFAULT = 1000
 
 
 def dry_run() -> bool:
@@ -66,10 +68,17 @@ def kaggle_ready() -> tuple[bool, str]:
 
 def kaggle(args: list, timeout: int = 900) -> tuple[int, str]:
     env = dict(os.environ, PYTHONIOENCODING="utf-8")
+    cwd = None
+    args = list(args)
+    if "-p" in args:
+        idx = args.index("-p")
+        if idx + 1 < len(args) and os.path.isabs(args[idx + 1]):
+            cwd = args[idx + 1]
+            args[idx + 1] = "."
     try:
         done = subprocess.run([find_kaggle(), *args], capture_output=True,
                               text=True, encoding="utf-8", errors="replace",
-                              timeout=timeout, env=env)
+                              timeout=timeout, env=env, cwd=cwd)
     except subprocess.TimeoutExpired:
         return 124, "timed out"
     return done.returncode, (done.stdout + done.stderr).strip()
@@ -80,7 +89,16 @@ def clamp_hours(hours: float) -> tuple[float, float, float]:
     return hours, max(0.5, hours - 1.0), hours - 0.5
 
 
+def clamp_top(top) -> int:
+    try:
+        top = int(top)
+    except (TypeError, ValueError):
+        return US_TOP_DEFAULT
+    return US_TOP_DEFAULT if top < 1 else min(top, US_TOP_MAX)
+
+
 def make_groups(presets, us: bool, top: int, delivery: bool, reference: bool):
+    top = clamp_top(top)
     extra = []
     if delivery:
         extra += ["--add", DELIVERY]
@@ -134,7 +152,14 @@ def stamp(text):
     print(f"[{(time.time() - started) / 60:6.1f} min] {text}", flush=True)
 
 
-src = os.path.dirname(glob.glob("/kaggle/input/**/walkforward.py", recursive=True)[0])
+src_matches = glob.glob("/kaggle/input/**/walkforward.py", recursive=True)
+if not src_matches:
+    message = f"walkforward.py not found in /kaggle/input. Inputs: {glob.glob('/kaggle/input/**')}"
+    print(f"[ERROR] {message}", flush=True)
+    with open(os.path.join(OUT, "error.txt"), "w") as handle:
+        handle.write(message + "\n")
+    sys.exit(1)
+src = os.path.dirname(src_matches[0])
 os.makedirs(WORK, exist_ok=True)
 for path in glob.glob(os.path.join(src, "*.py")):
     shutil.copy(path, WORK)
@@ -143,75 +168,93 @@ for pattern in ("/kaggle/input/**/data.pkg", "/kaggle/input/**/nse.pkg", "/kaggl
     if found:
         zipfile.ZipFile(found[0]).extractall(WORK)
 
-import torch
+building_top = None
+try:
+    import torch
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-stamp(f"device {device}; nse csvs {len(glob.glob(os.path.join(WORK, 'data_cache/nse/adj/*.csv')))}")
-env = dict(os.environ, MNT_DATA_SOURCE="nse", MNT_TORCH_DEVICE=device,
-           PYTHONUNBUFFERED="1", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
-subprocess.run([sys.executable, "-c",
-                "import json, features; s=json.load(open('data_cache/nse/adj/_index.json'))['symbols'];"
-                "p=features.cached_panel(s, top_liquid=500); print(len(p), p['symbol'].nunique())"],
-               cwd=WORK, check=True, env=env)
-for top in PREBUILD_US:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    stamp(f"device {device}; nse csvs {len(glob.glob(os.path.join(WORK, 'data_cache/nse/adj/*.csv')))}")
+    env = dict(os.environ, MNT_DATA_SOURCE="nse", MNT_TORCH_DEVICE=device,
+               PYTHONUNBUFFERED="1", OMP_NUM_THREADS="1", MKL_NUM_THREADS="1")
     subprocess.run([sys.executable, "-c",
                     "import json, features; s=json.load(open('data_cache/nse/adj/_index.json'))['symbols'];"
-                    "u=json.load(open('data_cache/us/_index.json'))['symbols'];"
-                    f"p=features.cached_panel(s, top_liquid=500, extra_symbols=u, extra_top_liquid={top}); print(len(p))"],
+                    "p=features.cached_panel(s, top_liquid=500); print(len(p), p['symbol'].nunique())"],
                    cwd=WORK, check=True, env=env)
-stamp("panel built")
+    for top in PREBUILD_US:
+        building_top = top
+        subprocess.run([sys.executable, "-c",
+                        "import json, features; s=json.load(open('data_cache/nse/adj/_index.json'))['symbols'];"
+                        "u=json.load(open('data_cache/us/_index.json'))['symbols'];"
+                        f"p=features.cached_panel(s, top_liquid=500, extra_symbols=u, extra_top_liquid={top}); print(len(p))"],
+                       cwd=WORK, check=True, env=env)
+    stamp("panel built")
 
-queue = [(tag, signal, nn, extra, seed) for seed in SEEDS for tag, signal, nn, extra in GROUPS]
-running, results = [], []
-_BP = re.compile(r"^(?:nn|blend\S*)\s+([+-]\d+)", re.M)
-_FIT = re.compile(r"fit: train IC ([+-][\d.]+)\s+val IC ([+-][\d.]+)")
-while queue or running:
-    hours = (time.time() - started) / 3600
-    if hours > LAUNCH_UNTIL_H and queue:
-        stamp(f"time guard: dropping {len(queue)} queued")
-        queue = []
-    if hours > KILL_AT_H:
-        for item in running:
-            item[4].kill()
-    while queue and len(running) < PARALLEL:
-        tag, signal, nn, extra, seed = queue.pop(0)
-        name = os.path.join(OUT, f"{tag}_s{seed}.log")
-        log = open(name, "w")
-        command = [sys.executable, "-u", "walkforward.py", "--signal", signal,
-                   "--seed", str(seed)] + UNIVERSE + extra
-        if nn:
-            command += ["--nn-budget", "240"]
-        job_env = dict(env, MNT_NN_JSON=json.dumps({**NN_BASE, **nn})) if nn else env
-        running.append((tag, seed, name, log, subprocess.Popen(
-            command, cwd=WORK, stdout=log, stderr=subprocess.STDOUT, env=job_env)))
-    time.sleep(30)
-    for item in list(running):
-        tag, seed, name, log, process = item
-        if process.poll() is None:
-            continue
-        log.close()
-        running.remove(item)
-        text = open(name).read()
-        bp = _BP.findall(text)
-        fits = [(float(a), float(b)) for a, b in _FIT.findall(text)]
-        result = {"tag": tag, "seed": seed, "exit": process.returncode,
-                  "bp": int(bp[-1]) if bp else None,
-                  "train_ic": sum(a for a, _ in fits) / len(fits) if fits else None,
-                  "val_ic": sum(b for _, b in fits) / len(fits) if fits else None}
-        results.append(result)
-        stamp(json.dumps(result))
-        with open(os.path.join(OUT, RESULTS), "w") as handle:
-            json.dump(results, handle, indent=1)
+    queue = [(tag, signal, nn, extra, seed) for seed in SEEDS for tag, signal, nn, extra in GROUPS]
+    running, results = [], []
+    _BP = re.compile(r"^(?:nn|blend\S*)\s+([+-]\d+)", re.M)
+    _FIT = re.compile(r"fit: train IC ([+-][\d.]+)\s+val IC ([+-][\d.]+)")
+    while queue or running:
+        hours = (time.time() - started) / 3600
+        if hours > LAUNCH_UNTIL_H and queue:
+            stamp(f"time guard: dropping {len(queue)} queued")
+            queue = []
+        if hours > KILL_AT_H:
+            for item in running:
+                item[4].kill()
+        while queue and len(running) < PARALLEL:
+            tag, signal, nn, extra, seed = queue.pop(0)
+            name = os.path.join(OUT, f"{tag}_s{seed}.log")
+            log = open(name, "w")
+            command = [sys.executable, "-u", "walkforward.py", "--signal", signal,
+                       "--seed", str(seed)] + UNIVERSE + extra
+            if nn:
+                command += ["--nn-budget", "240"]
+            job_env = dict(env, MNT_NN_JSON=json.dumps({**NN_BASE, **nn})) if nn else env
+            running.append((tag, seed, name, log, subprocess.Popen(
+                command, cwd=WORK, stdout=log, stderr=subprocess.STDOUT, env=job_env)))
+        time.sleep(30)
+        for item in list(running):
+            tag, seed, name, log, process = item
+            if process.poll() is None:
+                continue
+            log.close()
+            running.remove(item)
+            text = open(name).read()
+            bp = _BP.findall(text)
+            fits = [(float(a), float(b)) for a, b in _FIT.findall(text)]
+            result = {"tag": tag, "seed": seed, "exit": process.returncode,
+                      "bp": int(bp[-1]) if bp else None,
+                      "train_ic": sum(a for a, _ in fits) / len(fits) if fits else None,
+                      "val_ic": sum(b for _, b in fits) / len(fits) if fits else None}
+            results.append(result)
+            stamp(json.dumps(result))
+            with open(os.path.join(OUT, RESULTS), "w") as handle:
+                json.dump(results, handle, indent=1)
 
-for tag, *_ in GROUPS:
-    rows = [r for r in results if r["tag"] == tag and r["bp"] is not None]
-    if rows:
-        bps = [r["bp"] for r in rows]
-        gap = [r["train_ic"] - r["val_ic"] for r in rows if r["train_ic"] is not None]
-        stamp(f"SUMMARY {tag}: bp {bps} avg {sum(bps) / len(bps):+.0f} worst {min(bps):+d}"
-              + (f" | train-val IC gap {sum(gap) / len(gap):+.4f}" if gap else ""))
-shutil.rmtree(WORK, ignore_errors=True)
-stamp("done")
+    for tag, *_ in GROUPS:
+        rows = [r for r in results if r["tag"] == tag and r["bp"] is not None]
+        if rows:
+            bps = [r["bp"] for r in rows]
+            gap = [r["train_ic"] - r["val_ic"] for r in rows if r["train_ic"] is not None]
+            stamp(f"SUMMARY {tag}: bp {bps} avg {sum(bps) / len(bps):+.0f} worst {min(bps):+d}"
+                  + (f" | train-val IC gap {sum(gap) / len(gap):+.4f}" if gap else ""))
+    shutil.rmtree(WORK, ignore_errors=True)
+    stamp("done")
+except BaseException as exc:
+    import traceback
+    tail = "".join(traceback.format_exc().splitlines(True)[-12:])
+    if isinstance(exc, subprocess.CalledProcessError) and exc.returncode == -9:
+        label = f"US top {building_top}" if building_top else "NSE panel"
+        message = f"out of memory building the panel ({label}) - lower 'US top' (<= 2000 works)"
+    else:
+        message = f"{type(exc).__name__}: {exc}"
+    with open(os.path.join(OUT, "error.txt"), "w") as handle:
+        handle.write(message + "\n\n" + tail)
+    stamp("FAILED: " + message)
+    if not isinstance(exc, Exception):
+        raise
+finally:
+    shutil.rmtree(WORK, ignore_errors=True)
 '''
 
 
@@ -278,7 +321,7 @@ def build_job(workspace: str, params: dict, settings: dict, user: str) -> dict:
     groups = make_groups(params["presets"], params["us"], params["top"],
                          params["delivery"], params["reference"])
     seeds = list(range(7, 7 + int(params["seeds"])))
-    tops = [int(params["top"])] if params["us"] else []
+    tops = [clamp_top(params["top"])] if params["us"] else []
     script = render(groups, seeds, settings, tops, params["hours"])
     with open(os.path.join(folder, "run.py"), "w", encoding="utf-8",
               newline="\n") as handle:
@@ -302,6 +345,40 @@ def load_results(folder: str) -> list:
                 for r in rows):
             return rows
     return []
+
+
+def load_error_log(folder: str) -> str | None:
+    for path in sorted(glob.glob(os.path.join(folder, "**", "error.txt"),
+                                 recursive=True)):
+        try:
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                first = handle.readline().strip()
+        except Exception:
+            continue
+        if first:
+            return first[:300]
+    patterns = [
+        os.path.join(folder, "**", "*.log"),
+        os.path.join(folder, "**", "*.txt"),
+        os.path.join(folder, "*.log"),
+        os.path.join(folder, "*.txt"),
+    ]
+    files = []
+    for p in patterns:
+        files.extend(glob.glob(p, recursive=True))
+    for path in sorted(set(files)):
+        try:
+            with open(path, encoding="utf-8", errors="replace") as handle:
+                lines = [line.strip() for line in handle if line.strip()]
+            if not lines:
+                continue
+            for i, line in enumerate(lines):
+                if any(k in line for k in ("Traceback", "Error:", "Exception:", "FAILED", "error:")):
+                    return " ".join(lines[i:i + 3])[:200]
+            return lines[-1][:200]
+        except Exception:
+            pass
+    return None
 
 
 def summarise(rows: list) -> list:
