@@ -42,6 +42,7 @@ import pandas as pd
 
 import config
 import data as data_module
+import fo_features
 
 # Cross-sectionally ranked features: every one differs BETWEEN names on a date,
 # so a rank among them carries information.
@@ -289,6 +290,8 @@ def build_panel(symbols: list[str] | None = None, horizon: int | None = None,
             continue
         features = build_features(bars, us_market if is_us else market)
         features["symbol"] = symbol
+        if not is_us:
+            fo_features.add_fo(features, bars, symbol)
         # The label. shift(-horizon) is the only place the future is touched,
         # and it is touched on purpose.
         forward = bars["close"].shift(-horizon) / bars["close"] - 1.0
@@ -347,6 +350,7 @@ def cross_sectionalize(panel: pd.DataFrame,
             "against the others on the same day, so it needs at least "
             "10 in the universe - add more in the Universe tab.")
 
+    fo_features.add_sector(panel)
     keys = date_keys(panel)
     grouped = panel.groupby(keys)
     if "dollar_vol" in panel.columns:
@@ -369,6 +373,8 @@ def cross_sectionalize(panel: pd.DataFrame,
             continue
         ranked = grouped[column].rank(pct=True)
         panel[column] = (ranked - 0.5) * 2.0
+
+    fo_features.finish(panel, grouped)
 
     # Market context is left on its own scale - see MARKET_CONTEXT_COLUMNS.
     for column in MARKET_CONTEXT_COLUMNS:
@@ -460,6 +466,7 @@ def _panel_key(symbols: list[str]) -> str:
         if os.path.exists(path):
             with open(path, "rb") as handle:
                 h.update(handle.read())
+    h.update(fo_features.key_bytes())
     h.update(f"{config.TARGET_HORIZON}|{config.START}|{config.BENCHMARK}|"
              f"{os.environ.get('MNT_DATA_SOURCE', '')}".encode())
     for symbol in sorted(symbols) + [config.BENCHMARK]:
