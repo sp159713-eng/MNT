@@ -67,11 +67,13 @@ def _window(dates, rng):
             end_index, score_sessions)
 
 
-def _score(signal, panel, after, top_k, every):
+def _score(signal, panel, after, top_k, every, until=None):
     from scipy.stats import spearmanr
 
-    tail = np.sort(panel.loc[panel["timestamp"] > after,
-                             "timestamp"].unique())
+    mask = panel["timestamp"] > after
+    if until is not None:
+        mask &= panel["timestamp"] < until
+    tail = np.sort(panel.loc[mask, "timestamp"].unique())
     if not len(tail):
         return None
 
@@ -104,6 +106,16 @@ def _score(signal, panel, after, top_k, every):
     }
 
 
+def _combine(first: dict, second: dict) -> dict:
+    total = first["periods"] + second["periods"]
+    def mean(key):
+        return (first[key] * first["periods"] + second[key] * second["periods"]) / total
+    return {"periods": total, "rank_ic": mean("rank_ic"),
+            "excess_per_period_pct": mean("excess_per_period_pct"),
+            "excess_annual_pct": mean("excess_annual_pct"),
+            "score_from": first["score_from"], "score_to": second["score_to"]}
+
+
 def run(names: int = NAMES, seed: int | None = None,
         signal_name: str | None = None, on_log=None) -> dict:
     log = on_log or (lambda text: None)
@@ -117,7 +129,7 @@ def run(names: int = NAMES, seed: int | None = None,
     count = max(2, min(wanted, len(roster) - reserve))
     chosen = sorted(rng.sample(roster, count))
     rest = [name for name in roster if name not in set(chosen)]
-    held = sorted(rng.sample(rest, min(HELD_OUT_NAMES, len(rest)))) if rest else []
+    held = sorted(rest)
     if count < wanted:
         log(f"asked for {wanted} names, training on {count} so {len(rest)} "
             f"are left to score on - a run that trains on every name has "
@@ -159,6 +171,16 @@ def run(names: int = NAMES, seed: int | None = None,
         held_panel = features_module.cross_sectionalize(
             features_module.universe_panel(held))
         unseen = _score(signal, held_panel, after, top_k, every)
+        held_dates = pd.DatetimeIndex(held_panel["timestamp"].unique()).sort_values()
+        cut_index = np.searchsorted(held_dates, start) - int(config.TARGET_HORIZON) - 1
+        if cut_index > 0:
+            before = _score(signal, held_panel, held_dates[0] - pd.Timedelta(days=1),
+                            top_k, every, until=held_dates[cut_index])
+            if before:
+                log(f"unseen names, before window: rank IC {before['rank_ic']:+.4f}  "
+                    f"top-{top_k} excess {before['excess_annual_pct']:+.2f}%/yr  "
+                    f"({before['periods']} periods)")
+                unseen = _combine(before, unseen) if unseen else before
 
     os.makedirs(DIR, exist_ok=True)
     run_id = _next_id()
@@ -195,7 +217,7 @@ def run(names: int = NAMES, seed: int | None = None,
         f"top-{top_k} excess {same['excess_annual_pct']:+.2f}%/yr  "
         f"({same['periods']} periods)")
     if unseen:
-        log(f"unseen names  : rank IC {unseen['rank_ic']:+.4f}  "
+        log(f"unseen, combined: rank IC {unseen['rank_ic']:+.4f}  "
             f"top-{top_k} excess {unseen['excess_annual_pct']:+.2f}%/yr  "
             f"({unseen['periods']} periods)")
         log("the unseen-names row is the one that decides whether this run "
