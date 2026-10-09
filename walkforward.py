@@ -119,11 +119,14 @@ def choose(val_panel: pd.DataFrame, predictions: np.ndarray, every: int,
     computed from twelve observations.
     """
     best = None
+    smoothed = {}
+    for window in windows:
+        val_panel["pred"] = predictions
+        smoothed[window] = backtest_module.smooth(val_panel, window)
     for k in SIZES:
         for buffer in BUFFERS:
             for window in windows:
-                val_panel["pred"] = predictions
-                val_panel["pred"] = backtest_module.smooth(val_panel, window)
+                val_panel["pred"] = smoothed[window].copy()
                 for gate in GATES:
                     book = backtest_module.run(val_panel, k, buffer, every,
                                                capital, slippage, segment,
