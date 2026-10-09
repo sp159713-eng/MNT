@@ -8,7 +8,35 @@ ORACLE = "oracle (perfect)"
 DOT = " · "
 
 
-def latest_walkforward() -> dict | None:
+PREFIXES = {"sect:": "SECTOR_COLUMNS", "regime:": "REGIME_COLUMNS"}
+
+
+def _wanted(signal: str) -> tuple[str, set]:
+    for prefix, attr in PREFIXES.items():
+        if signal.startswith(prefix):
+            try:
+                if attr == "SECTOR_COLUMNS":
+                    import fo_features as source
+                else:
+                    import features as source
+                extra = set(getattr(source, attr))
+            except Exception:
+                extra = set()
+            return signal[len(prefix):], extra
+    return signal, set()
+
+
+def matches(record: dict, signal: str) -> bool:
+    settings = record.get("settings") or {}
+    name = settings.get("signal")
+    added = {c.strip() for c in str(settings.get("add") or "").split(",") if c.strip()}
+    if name == signal:
+        return True
+    base, extra = _wanted(signal)
+    return bool(extra) and name == base and extra <= added
+
+
+def latest_walkforward(signal: str | None = None) -> dict | None:
     try:
         import runs
 
@@ -19,6 +47,10 @@ def latest_walkforward() -> dict | None:
         return None
     if not records:
         return None
+    if signal:
+        mine = [r for r in records if matches(r, signal)]
+        if mine:
+            return mine[-1]
     for record in reversed(records):
         if ORACLE in (record.get("baselines") or {}):
             return record
@@ -87,7 +119,9 @@ def caption(record: dict) -> str:
     years = [f.get("test_year") for f in record.get("folds") or []
              if isinstance(f, dict) and f.get("test_year")]
     span = f"{DOT}walk-forward {min(years)}-{max(years)}" if years else f"{DOT}walk-forward"
-    return f"run #{record.get('id')}{DOT}{str(record.get('at', ''))[:10]}{span}"
+    name = (record.get("settings") or {}).get("signal")
+    model = f"{DOT}{name}" if name else ""
+    return f"run #{record.get('id')}{model}{DOT}{str(record.get('at', ''))[:10]}{span}"
 
 
 class GapCard(Card):
@@ -112,7 +146,13 @@ class GapCard(Card):
         self.refresh()
 
     def refresh(self) -> None:
-        record = latest_walkforward()
+        try:
+            import config
+
+            signal = config.PRODUCTION_SIGNAL
+        except Exception:
+            signal = None
+        record = latest_walkforward(signal)
         self.rows = gap_rows(record) if record else []
         if not self.rows:
             self.line.config(text=self.EMPTY, fg=Palette.muted)

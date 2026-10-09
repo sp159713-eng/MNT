@@ -917,7 +917,8 @@ class App(tk.Tk):
 
         prefs = theme_module.preferences()
         if prefs.get("default_signal") != self.settings.DEFAULT_SIGNAL:
-            if prefs.get("signal") in (None, "lightgbm"):
+            if prefs.get("signal") in (None, "lightgbm", "blend:lightgbm+mom_252",
+                                       "regime:blend:lightgbm+mom_252"):
                 theme_module.save_signal(self.settings.DEFAULT_SIGNAL)
                 self.settings.PRODUCTION_SIGNAL = self.settings.DEFAULT_SIGNAL
             theme_module._write(dict(theme_module.preferences(),

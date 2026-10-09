@@ -422,6 +422,11 @@ class SimPage(Page):
         row = self.header("Simulation")
         self.run_button = Button(row, "Run sim", self.run)
         self.run_button.pack(side="right", padx=(8, 0))
+        self.show_ideal = tk.BooleanVar(value=False)
+        self.last_payload = None
+        ttk.Checkbutton(row, text="Show perfect bot", variable=self.show_ideal,
+                        command=self._redraw,
+                        style="TCheckbutton").pack(side="right", padx=(0, 12))
         self.days = tk.IntVar(value=252)
         ttk.Spinbox(row, from_=60, to=1500, increment=21, width=6,
                    textvariable=self.days, font=self.f["mono_small"]).pack(side="right", padx=(0, 8))
@@ -537,7 +542,12 @@ class SimPage(Page):
 
         self.app.worker.submit(work, self._done, self._failed)
 
+    def _redraw(self) -> None:
+        if self.last_payload is not None and not self.progress.winfo_ismapped():
+            self._done(self.last_payload)
+
     def _done(self, payload) -> None:
+        self.last_payload = payload
         curve, bench, capital, stats, run_id, ceiling = payload
         self.run_button.set_enabled(True)
         self.progress.stop()
@@ -576,18 +586,20 @@ class SimPage(Page):
             text = (f"{stamps[index]}\n"
                     f"equity  {value:,.0f}\n"
                     f"made   {sign}{abs(made):,.0f}  ({sign}{abs(pct):.1f}%)")
-            if ideal:
+            if ideal and self.show_ideal.get():
                 text += f"\nperfect {ideal[index]:,.0f}"
             return text, tone
 
         ceiling_made = (ideal[-1] - capital) if ideal else 0.0
+        shown = bool(ideal) and self.show_ideal.get()
         self.chart.line(equity, labels=labels, baseline=capital,
                         colour=Palette.good if final >= capital else Palette.bad,
                         formatter=lambda v: f"{v / 1000:,.0f}k",
-                        readout=readout, overlay=ideal,
+                        readout=readout,
+                        overlay=ideal if shown else None,
                         overlay_label=(f"perfect bot {ideal[-1]:,.0f}  "
                                        f"(+{ceiling_made:,.0f})")
-                        if ideal else None)
+                        if shown else None)
         logged = f" Logged as run {run_id}." if run_id else ""
         self.verdict.config(
             fg=Palette.muted,
