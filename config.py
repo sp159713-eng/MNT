@@ -242,8 +242,8 @@ SEED = 7
 GBM_PRESETS = (30, 60, 100, 120, 360)
 SIGNALS = (("lightgbm",) + tuple(f"gbm{n}" for n in GBM_PRESETS)
            + ("gbmall", "nn", "tabpfn", "xgboost", "blend:lightgbm+mom_252",
-              "regime:blend:lightgbm+mom_252"))
-DEFAULT_SIGNAL = "blend:lightgbm+mom_252"
+              "regime:blend:lightgbm+mom_252", "sect:blend:lightgbm+mom_252"))
+DEFAULT_SIGNAL = "sect:blend:lightgbm+mom_252"
 HOLDOUT_FROM = 2025
 
 NN_DEFAULTS = {"hidden": 32, "layers": 2, "dropout": 0.2, "learning_rate": 1e-3,

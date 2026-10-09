@@ -52,6 +52,7 @@ import pandas as pd
 
 import config
 import features as features_module
+import fo_features
 import metrics as metrics_module
 
 
@@ -418,6 +419,11 @@ def build(name: str, **kwargs):
     if name.startswith("regime:"):
         columns = features_module.MODEL_COLUMNS + features_module.REGIME_COLUMNS
         signal = build(name[len("regime:"):], **{**kwargs, "columns": columns})
+        signal.columns = columns
+        return signal
+    if name.startswith("sect:"):
+        columns = features_module.MODEL_COLUMNS + fo_features.SECTOR_COLUMNS
+        signal = build(name[len("sect:"):], **{**kwargs, "columns": columns})
         signal.columns = columns
         return signal
     if name.startswith("blend:"):
