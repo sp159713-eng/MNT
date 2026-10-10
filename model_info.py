@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 
+import config
+
 DEFAULT = "sect:blend:lightgbm+mom_252"
 
 LABELS = {
@@ -56,8 +58,13 @@ def _record(signal: str, oracle: bool = False):
             continue
         if not gapcard.matches(r, signal):
             continue
-        added = str((r.get("settings") or {}).get("add") or "").strip()
+        settings = r.get("settings") or {}
+        added = str(settings.get("add") or "").strip()
         if plain and added:
+            continue
+        if settings.get("every", config.REBALANCE_EVERY) != config.REBALANCE_EVERY:
+            continue
+        if str(settings.get("drop") or "").strip():
             continue
         if oracle and gapcard.ORACLE not in (r.get("baselines") or {}):
             continue
