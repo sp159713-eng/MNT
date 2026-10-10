@@ -25,7 +25,7 @@
 
 from PyInstaller.utils.hooks import collect_all
 
-datas = []
+datas = [('mnt.ico', '.')]
 binaries = []
 hiddenimports = ['joblib', 'pandas', 'walkforward', 'backtest', 'metrics',
                  'auth', 'training', 'scipy.stats']
@@ -65,6 +65,7 @@ exe = EXE(
     strip=False,
     upx=True,
     console=False,
+    icon='mnt.ico',
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

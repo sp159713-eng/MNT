@@ -706,7 +706,11 @@ class App(tk.Tk):
 
     def __init__(self):
         super().__init__()
-        self.title("MNT")
+        self.title("Ascent")
+        try:
+            self.iconbitmap(default=os.path.join(BASE_DIR, "mnt.ico"))
+        except tk.TclError:
+            pass
         self.geometry("1160x740")
         self.minsize(960, 640)
         self.worker = Worker(self)
@@ -736,7 +740,7 @@ class App(tk.Tk):
         holder = tk.Frame(self, bg=Palette.bg)
         holder.place(relx=0.5, rely=0.5, anchor="center")
 
-        tk.Label(holder, text="MNT", bg=Palette.bg, fg=Palette.text,
+        tk.Label(holder, text="Ascent", bg=Palette.bg, fg=Palette.text,
                  font=self.f["h1"]).pack()
         tk.Label(holder, text="NSE equity book", bg=Palette.bg,
                  fg=Palette.faint, font=self.f["small"]).pack(pady=(0, 24))
@@ -853,7 +857,7 @@ class App(tk.Tk):
         brand = tk.Frame(sidebar, bg=Palette.sidebar_bg)
         brand.pack(fill="x", pady=(SPACE["xl"], SPACE["sm"]),
                    padx=SPACE["lg"])
-        tk.Label(brand, text="MNT", bg=Palette.sidebar_bg, fg=Palette.text,
+        tk.Label(brand, text="Ascent", bg=Palette.sidebar_bg, fg=Palette.text,
                  font=self.f["h1"]).pack(anchor="w")
         tk.Label(brand, text="NSE equity book", bg=Palette.sidebar_bg,
                  fg=Palette.faint, font=self.f["small"]).pack(anchor="w")

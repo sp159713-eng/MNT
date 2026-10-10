@@ -1,9 +1,9 @@
 ; MNT Installer Script for Inno Setup
 ; Production NSE equity trading system
 
-#define MyAppName "MNT"
+#define MyAppName "Ascent"
 #define MyAppVersion "1.4.0"
-#define MyAppPublisher "MNT Trading"
+#define MyAppPublisher "Ascent"
 #define MyAppExeName "MNT.exe"
 #define MyAppURL "https://github.com/sp159713-eng/MNT"
 
@@ -16,12 +16,14 @@ AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
 AppUpdatesURL={#MyAppURL}
-DefaultDirName={autopf}\{#MyAppName}
+DefaultDirName={autopf}\MNT
 DefaultGroupName={#MyAppName}
 AllowNoIcons=yes
+SetupIconFile=mnt.ico
+UninstallDisplayIcon={app}\{#MyAppExeName}
 ; Output settings
 OutputDir=installer_output
-OutputBaseFilename=MNT_Setup_{#MyAppVersion}
+OutputBaseFilename=Ascent_Setup_{#MyAppVersion}
 ; Compression
 Compression=lzma2
 SolidCompression=yes
@@ -55,6 +57,8 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; and cached bars, which are the operator's and must survive an upgrade.
 Type: filesandordirs; Name: "{app}\_internal"
 Type: files; Name: "{app}\MNT.exe"
+Type: filesandordirs; Name: "{autoprograms}\MNT"
+Type: files; Name: "{autodesktop}\MNT.lnk"
 
 [Files]
 ; Main executable and all dependencies from dist\MNT\
@@ -117,12 +121,12 @@ procedure CurPageChanged(CurPageID: Integer);
 begin
   if (CurPageID = wpWelcome) and IsUpgrade() then
   begin
-    WizardForm.WelcomeLabel1.Caption := 'Update MNT';
+    WizardForm.WelcomeLabel1.Caption := 'Update Ascent';
     WizardForm.WelcomeLabel2.Caption :=
-      'MNT ' + PriorVersion() + ' is already installed.' + #13#10 + #13#10 +
+      'Ascent ' + PriorVersion() + ' is already installed.' + #13#10 + #13#10 +
       'Click Update to replace it with version {#MyAppVersion}. Your added ' +
       'stocks, the trained model, the paper account and cached prices are ' +
-      'all kept. If MNT is running it will be closed first.';
+      'all kept. If Ascent is running it will be closed first.';
     WizardForm.NextButton.Caption := 'Update';
   end;
 end;
@@ -134,7 +138,7 @@ begin
   InfoPage := CreateOutputMsgMemoPage(wpWelcome,
     'Important Information', 'Please read before continuing',
     'Review the notes below, then click Next to continue.',
-    'MNT is a production trading system for NSE equity.' + #13#10 + #13#10 +
+    'Ascent is a production trading system for NSE equity.' + #13#10 + #13#10 +
     'Key features:' + #13#10 +
     '• LightGBM ranker with +46bp excess return' + #13#10 +
     '• Equal-weighted 6 names, monthly rebalance' + #13#10 +
