@@ -916,6 +916,18 @@ class PulsePage(Page):
                  anchor="w", justify="left", wraplength=900).pack(
             fill="x", pady=(0, 12))
 
+        self.light = tk.Frame(self, bg=Palette.panel,
+                              highlightthickness=1,
+                              highlightbackground=Palette.border)
+        self.light.pack(fill="x", pady=(0, 14))
+        self.light_dot = tk.Label(self.light, text="\u25cf", bg=Palette.panel,
+                                  fg=Palette.faint, font=self.f["number"])
+        self.light_dot.pack(side="left", padx=(16, 8), pady=10)
+        self.light_text = tk.Label(self.light, text="No data",
+                                   bg=Palette.panel, fg=Palette.text,
+                                   font=self.f["number"])
+        self.light_text.pack(side="left", pady=10)
+
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
         self.tiles = {}
@@ -963,6 +975,13 @@ class PulsePage(Page):
 
     def _done(self, payload) -> None:
         snapshot, summary, history = payload
+        import pulse as pulse_module
+
+        level, words = pulse_module.verdict(snapshot)
+        colour = {"green": Palette.good, "amber": Palette.warn,
+                  "red": Palette.bad}.get(level, Palette.faint)
+        self.light_dot.config(fg=colour)
+        self.light_text.config(text=words)
         for key, formatter in (("dispersion_1d", "{:.2%}"),
                                ("avg_correlation", "{:.2f}"),
                                ("pct_above_50dma", "{:.0%}"),

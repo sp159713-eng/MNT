@@ -36,6 +36,8 @@ from tkinter import ttk
 
 import re
 
+import auth as auth_module
+import bots_page
 import pages as pages_module
 from shell import SidebarItem, TabbedPage, section_label
 from theme import (SPACE, Button, Card, Chart, Palette, fonts,
@@ -138,16 +140,18 @@ class PicksPage(Page):
         card = Card(self, "Holdings",
                     "ranked by model score, highest first")
         card.pack(fill="both", expand=True)
-        columns = ("rank", "symbol", "score", "mom_126", "vol_21")
+        columns = ("rank", "symbol", "score", "mom_126", "vol_21", "why")
         self.tree = ttk.Treeview(card.body, columns=columns, show="headings",
                                  height=12)
         for column, width, heading in (
                 ("rank", 50, "#"), ("symbol", 130, "SYMBOL"),
                 ("score", 110, "SCORE"), ("mom_126", 110, "6M MOM RANK"),
-                ("vol_21", 110, "21D VOL RANK")):
+                ("vol_21", 110, "21D VOL RANK"), ("why", 420, "WHY")):
             self.tree.heading(column, text=heading)
             self.tree.column(column, width=width,
-                             anchor="w" if column == "symbol" else "center")
+                             stretch=column == "why",
+                             anchor="w" if column in ("symbol", "why")
+                             else "center")
         self.tree.pack(fill="both", expand=True)
 
         self.note = tk.Label(card.body, text="", bg=Palette.panel,
@@ -166,10 +170,16 @@ class PicksPage(Page):
         import features as features_module
         import production
 
-        _, bundle = production.load()
+        signal, bundle = production.load()
         panel = features_module.cross_sectionalize(
             features_module.build_panel(), require_target=False)
         latest = production.scored(panel)
+        try:
+            import explain as explain_module
+
+            latest["why"] = explain_module.why(signal, latest)
+        except Exception:
+            latest["why"] = ""
 
         capital = self.app.capital
         each = capital / config.TOP_K
@@ -196,7 +206,8 @@ class PicksPage(Page):
         for position, (_, row) in enumerate(result["rows"].iterrows(), start=1):
             self.tree.insert("", "end", values=(
                 position, row["symbol"], f"{row['score']:+.4f}",
-                f"{row['mom_126']:+.2f}", f"{row['vol_21']:+.2f}"))
+                f"{row['mom_126']:+.2f}", f"{row['vol_21']:+.2f}",
+                row.get("why", "")))
 
         self.note.config(
             text="Feature values are cross-sectional ranks in [-1, 1], not raw "
@@ -697,12 +708,13 @@ class App(tk.Tk):
         ("Results", (("Sim", pages_module.SimPage),
                      ("Backtest", (("Backtest", BacktestPage),
                                    ("Costs", CostsPage))),
+                     ("Bots", bots_page.BotsPage),
                      ("Training", pages_module.TrainingPage))),
         ("System", (("Settings", (("General", pages_module.SettingsPage),
                                   ("Venues", pages_module.VenuePage))),)),
     )
 
-    ADMIN_ONLY = ("Training",)
+    ADMIN_ONLY = ("Bots", "Training")
 
     def __init__(self):
         super().__init__()
@@ -871,7 +883,8 @@ class App(tk.Tk):
         nav = tk.Frame(sidebar, bg=Palette.sidebar_bg)
         nav.pack(fill="x", padx=SPACE["md"])
         for heading, entries in self.SECTIONS:
-            visible = list(entries)
+            visible = [e for e in entries if e[0] not in self.ADMIN_ONLY
+                       or auth_module.is_admin()]
             if not visible:
                 continue
             section_label(nav, heading)

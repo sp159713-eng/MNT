@@ -261,15 +261,15 @@ def cmd_run():
     return 1 if failures else 0
 
 
-def cmd_status():
-    print(f"{'bot':<8} {'start':<11} {'equity':>10} {'ret%':>7} "
-          f"{'vsNifty':>8} {'vsEW':>7} {'since':>6} {'last run':<11}")
+def status_rows(strict=True):
+    rows_out = []
     closes = None
-    for name in BOTS:
+    for name, spec in BOTS.items():
         rows = read_equity(name)
         state = read_json(bot_path(name, "state.json"), {})
         if not rows:
-            print(f"{name:<8} no runs yet")
+            rows_out.append({"name": name, "signal": spec.get("signal"),
+                             "empty": True})
             continue
         first, last = rows[0], rows[-1]
         equity = float(last["equity"])
@@ -279,13 +279,36 @@ def cmd_status():
             base, now = float(first[key]), float(last[key])
             return ret - (now / base - 1) * 100 if base else float("nan")
 
-        if closes is None:
-            closes = market_closes()
-        since = trading_days_since(closes, state.get("last_rebalance"),
-                                   pd.Timestamp(last["date"]))
-        print(f"{name:<8} {first['date']:<11} {equity:>10,.0f} {ret:>7.2f} "
-              f"{versus('bench_nifty'):>8.2f} {versus('bench_ew'):>7.2f} "
-              f"{since:>6} {state.get('last_run', '?'):<11}")
+        since = None
+        try:
+            if closes is None:
+                closes = market_closes()
+            since = trading_days_since(closes, state.get("last_rebalance"),
+                                       pd.Timestamp(last["date"]))
+        except Exception:
+            if strict:
+                raise
+        rows_out.append({"name": name, "signal": spec.get("signal"),
+                         "empty": False, "start": first["date"],
+                         "date": last["date"], "equity": equity, "ret": ret,
+                         "vs_nifty": versus("bench_nifty"),
+                         "vs_ew": versus("bench_ew"), "since": since,
+                         "last_run": state.get("last_run", "?"),
+                         "series": [float(r["equity"]) for r in rows]})
+    return rows_out
+
+
+def cmd_status():
+    print(f"{'bot':<8} {'start':<11} {'equity':>10} {'ret%':>7} "
+          f"{'vsNifty':>8} {'vsEW':>7} {'since':>6} {'last run':<11}")
+    for row in status_rows():
+        if row["empty"]:
+            print(f"{row['name']:<8} no runs yet")
+            continue
+        print(f"{row['name']:<8} {row['start']:<11} {row['equity']:>10,.0f} "
+              f"{row['ret']:>7.2f} {row['vs_nifty']:>8.2f} "
+              f"{row['vs_ew']:>7.2f} {row['since']:>6} "
+              f"{row['last_run']:<11}")
     return 0
 
 

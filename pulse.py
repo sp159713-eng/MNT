@@ -159,6 +159,22 @@ def history(limit: int | None = None) -> list[dict]:
     return rows[-limit:] if limit else rows
 
 
+DISPERSION_WIDE = 0.02
+CORRELATION_BLOCK = 0.7
+
+
+def verdict(snapshot: dict) -> tuple[str, str]:
+    correlation = snapshot.get("avg_correlation")
+    dispersion = snapshot.get("dispersion_1d")
+    if not (isinstance(correlation, float) and isinstance(dispersion, float)):
+        return "none", "No data"
+    if correlation > CORRELATION_BLOCK:
+        return "red", "Poor - names moving together"
+    if dispersion > DISPERSION_WIDE:
+        return "green", "Good for the model"
+    return "amber", "Ordinary"
+
+
 def summary(snapshot: dict) -> str:
     def value(key, formatter="{:.4f}", default="-"):
         raw = snapshot.get(key)
@@ -182,15 +198,14 @@ def summary(snapshot: dict) -> str:
         f"      {value('vix_change', '{:+.2%}')}",
     ]
 
-    correlation = snapshot.get("avg_correlation")
-    dispersion = snapshot.get("dispersion_1d")
-    if isinstance(correlation, float) and isinstance(dispersion, float):
+    level = verdict(snapshot)[0]
+    if level != "none":
         lines.append("")
-        if correlation > 0.7:
+        if level == "red":
             lines.append("  Names are moving as one block. A ranking model has "
                          "little to separate\n  and the charge sheet does not "
                          "shrink to match.")
-        elif dispersion > 0.02:
+        elif level == "green":
             lines.append("  Wide dispersion: the gap between the best names and "
                          "the average is\n  unusually large, which is the "
                          "condition this book needs.")
