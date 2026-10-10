@@ -170,6 +170,11 @@ class PicksPage(Page):
         import features as features_module
         import production
 
+        import time
+
+        import model_timings
+
+        started = time.perf_counter()
         signal, bundle = production.load()
         panel = features_module.cross_sectionalize(
             features_module.build_panel(), require_target=False)
@@ -181,6 +186,8 @@ class PicksPage(Page):
         except Exception:
             latest["why"] = ""
 
+        model_timings.record(bundle.get("name"), "pick",
+                             time.perf_counter() - started)
         capital = self.app.capital
         each = capital / config.TOP_K
         return {

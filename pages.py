@@ -1565,57 +1565,70 @@ class SettingsPage(Page):
         model_card = Card(body, "Model", "what the book actually trades")
         model_card.pack(fill="x", pady=(0, 14))
 
+        import model_info
+
+        self.model_options = model_info.options(
+            getattr(self.app.settings, "GBM_PRESETS", ()))
+        self.model_names = {label: name for name, label in self.model_options}
+        live = getattr(self.app.settings, "PRODUCTION_SIGNAL", "lightgbm")
+        self.preview = live
         row = tk.Frame(model_card.body, bg=Palette.panel)
         row.pack(fill="x")
-        tk.Label(row, text="Signal", bg=Palette.panel, fg=Palette.text,
+        tk.Label(row, text="Model", bg=Palette.panel, fg=Palette.text,
                  font=self.f["body"], width=16, anchor="w").pack(side="left")
-
-        self.signal_buttons = {}
-        import importlib.util
-
-        choices = [("lightgbm", "LightGBM")]
-        if importlib.util.find_spec("torch") is not None:
-            choices.append(("nn", "Neural net"))
-        for name, label in choices:
-            button = Button(row, label, lambda n=name: self.set_signal(n),
-                            kind="ghost")
-            button.pack(side="left", padx=(0, 8))
-            self.signal_buttons[name] = button
+        self.model_choice = tk.StringVar(value=model_info.label(live))
+        self.model_box = ttk.Combobox(
+            row, textvariable=self.model_choice, state="readonly", width=34,
+            values=[label for _name, label in self.model_options],
+            font=self.f["mono_small"])
+        self.model_box.pack(side="left")
+        self.model_box.bind("<<ComboboxSelected>>", self._previewed)
 
         self.refit_button = Button(row, "Refit now", self.refit, kind="ghost")
         self.refit_button.pack(side="right")
-
-        preset_row = tk.Frame(model_card.body, bg=Palette.panel)
-        preset_row.pack(fill="x", pady=(10, 0))
-        tk.Label(preset_row, text="Trained on", bg=Palette.panel,
-                 fg=Palette.text, font=self.f["body"], width=16,
-                 anchor="w").pack(side="left")
-        options = [(f"gbm{c}", f"GBM {c}")
-                   for c in getattr(self.app.settings, "GBM_PRESETS", ())]
-        options.append(("gbmall", "Untrained"))
-        for preset, label in options:
-            button = Button(preset_row, label,
-                            lambda n=preset: self.set_signal(n), kind="ghost")
-            button.pack(side="left", padx=(0, 8))
-            self.signal_buttons[preset] = button
+        self.use_button = Button(row, "Use this model",
+                                 lambda: self.set_signal(self.preview))
+        self.use_button.pack(side="right", padx=(0, 8))
 
         self.signal_note = tk.Label(
             model_card.body, text="", bg=Palette.panel, fg=Palette.muted,
             font=self.f["small"], anchor="w", justify="left", wraplength=820)
         self.signal_note.pack(fill="x", pady=(10, 0))
 
+        self.stat_tiles = {}
+        grid = tk.Frame(model_card.body, bg=Palette.panel)
+        grid.pack(fill="x", pady=(10, 0))
+        for index, (key, title) in enumerate((
+                ("net", "Return, net %/yr"), ("bench", "Benchmark %/yr"),
+                ("excess", "Excess vs benchmark"),
+                ("edge", "Edge over best simple rule"),
+                ("captured", "Of perfect bot captured"),
+                ("turnover", "Turnover per period"),
+                ("fit", "Training time"), ("pick", "Picks time"))):
+            grid.columnconfigure(index % 4, weight=1, uniform="stat")
+            cell = tk.Frame(grid, bg=Palette.panel_high)
+            cell.grid(row=index // 4, column=index % 4, sticky="nsew",
+                      padx=(0, 8), pady=(0, 8))
+            value = tk.Label(cell, text="-", bg=Palette.panel_high,
+                             fg=Palette.text, font=self.f["body"], anchor="w")
+            value.pack(fill="x", padx=8, pady=(6, 0))
+            tk.Label(cell, text=title, bg=Palette.panel_high, fg=Palette.muted,
+                     font=self.f["small"], anchor="w").pack(
+                fill="x", padx=8, pady=(0, 6))
+            self.stat_tiles[key] = value
+        self.stat_note = tk.Label(
+            model_card.body, text="", bg=Palette.panel, fg=Palette.faint,
+            font=self.f["small"], anchor="w", justify="left", wraplength=820)
+        self.stat_note.pack(fill="x")
+
         tk.Label(model_card.body,
-                 text="Measured over 14 walk-forward folds, same features, "
-                      "same target, same turnover machinery: LightGBM +46bp "
-                      "excess per period at t 1.76, the network less. The "
-                      "default is LightGBM because that is what the "
-                      "measurement chose - switching here runs the other one, "
-                      "it does not make it the better model. Changing the "
-                      "signal leaves the saved fit behind, so refit before the "
-                      "Book, Orders or Sim tabs are trusted.",
+                 text="Picking a model here only shows its measured results. "
+                      "Use this model makes it the one the book trades; then "
+                      "refit, because Book, Orders and Sim refuse a saved fit "
+                      "from a different model.",
                  bg=Palette.panel, fg=Palette.faint, font=self.f["small"],
                  anchor="w", justify="left", wraplength=820).pack(
-            fill="x", pady=(8, 0))
+            fill="x", pady=(4, 0))
 
         # --- stocks -------------------------------------------------------
         stocks_card = Card(body, "Stocks", "managed on the Stock page")
@@ -1664,27 +1677,109 @@ class SettingsPage(Page):
         except Exception:
             return "unreadable"
 
-    def _mark_signal(self) -> None:
-        current = getattr(self.app.settings, "PRODUCTION_SIGNAL", "lightgbm")
-        for name, button in self.signal_buttons.items():
-            button.configure(bg=Palette.accent if name == current
-                             else Palette.panel_high,
-                             fg=Palette.on_accent if name == current
-                             else Palette.text)
+    def _previewed(self, _event=None) -> None:
+        name = self.model_names.get(self.model_choice.get())
+        if name:
+            self.preview = name
+            self._mark_signal()
 
+    def _load_stats(self) -> None:
+        name = self.preview
+
+        def work():
+            import model_info
+
+            return model_info.stats(name)
+
+        def done(result):
+            if result.get("signal") == self.preview:
+                self._show_stats(result)
+
+        def failed(_error):
+            self._show_stats({"signal": name, "record": None, "timing": {}})
+
+        self.app.worker.submit(work, done, failed)
+
+    def _show_stats(self, result: dict) -> None:
+        import model_timings
+
+        tiles = self.stat_tiles
+        for tile in tiles.values():
+            tile.config(text="-", fg=Palette.text)
+        record = result.get("record")
+        timing = result.get("timing") or {}
+        for key in ("fit", "pick"):
+            if f"{key}_s" in timing:
+                tiles[key].config(
+                    text=model_timings.human(timing[f"{key}_s"]))
+            else:
+                tiles[key].config(text="not measured yet")
+        if not record:
+            self.stat_note.config(
+                text="No test results yet for this model. Timing appears "
+                     "after a refit (training) and Compute holdings (picks).",
+                fg=Palette.muted)
+            return
+
+        def pct(value):
+            return "n/a" if value is None else f"{value:.1f}%"
+
+        def tone(value):
+            if value is None:
+                return Palette.text
+            return Palette.good if value >= 0 else Palette.bad
+
+        tiles["net"].config(text=pct(record["net"]))
+        tiles["bench"].config(text=pct(record["bench"]))
+        excess = record["excess"]
+        tiles["excess"].config(
+            text="n/a" if excess is None else f"{excess:+.1f} pts",
+            fg=tone(excess))
+        edge = record["edge_bp"]
+        tiles["edge"].config(
+            text="n/a" if edge is None else f"{edge:+.0f} bp", fg=tone(edge))
+        tiles["captured"].config(
+            text="not measured" if record["captured"] is None
+            else f"{record['captured']:.1f}%")
+        turnover = record["turnover"]
+        tiles["turnover"].config(
+            text="n/a" if turnover is None else f"{turnover * 100:.0f}%")
+        note = (f"Measured on {record['date']}, {record['folds']} "
+                f"walk-forward folds (run #{record['run']}).")
+        if record["captured_from"]:
+            note += f" Perfect-bot share is from the {record['captured_from']} run."
+        elif record["captured"] is None:
+            note += " That run did not include the perfect-bot comparison."
+        if record["edge_vs"]:
+            note += f" Edge is against {record['edge_vs']}."
+        self.stat_note.config(text=note, fg=Palette.faint)
+
+    def _mark_signal(self) -> None:
+        import model_info
+
+        current = getattr(self.app.settings, "PRODUCTION_SIGNAL", "lightgbm")
         stored = self._stored_signal()
-        if stored == current:
+        previewing = self.preview != current
+        self.use_button.set_enabled(previewing)
+        if previewing:
             self.signal_note.config(
-                text=f"Trading {current}; the saved fit is {stored}.",
+                text=(f"Previewing {model_info.label(self.preview)}. The book "
+                      f"still trades {model_info.label(current)}; press Use "
+                      f"this model to switch."),
+                fg=Palette.muted)
+        elif stored == current:
+            self.signal_note.config(
+                text=f"Trading {model_info.label(current)}; the saved fit "
+                     f"matches.",
                 fg=Palette.good)
-            self.refit_button.set_enabled(True)
         else:
             self.signal_note.config(
-                text=(f"Set to {current}, but the saved fit is {stored}. "
-                      f"Book, Orders and Sim will refuse to run until this is "
-                      f"refitted."),
+                text=(f"Set to {model_info.label(current)}, but the saved fit "
+                      f"is {model_info.label(stored)}. Book, Orders and Sim "
+                      f"will refuse to run until this is refitted."),
                 fg=Palette.warn)
-            self.refit_button.set_enabled(True)
+        self.refit_button.set_enabled(True)
+        self._load_stats()
 
     def set_signal(self, name: str) -> None:
         import theme as theme_module
@@ -1693,7 +1788,9 @@ class SettingsPage(Page):
             return
         theme_module.save_signal(name)
         self.app.settings.PRODUCTION_SIGNAL = name
+        self.preview = name
         self._mark_signal()
+
 
     def refit(self) -> None:
         """Fit and save the configured signal, so the stamp matches again."""

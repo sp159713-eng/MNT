@@ -145,7 +145,7 @@ def roster_for(name: str | None):
     return liquid_names(size) if size is not None else None
 
 
-def fit(signal_name: str | None = None, quiet: bool = False,
+def _fit_all(signal_name: str | None = None, quiet: bool = False,
         subsets: bool = False, size: int = SUBSET_SIZE,
         members: int = SUBSET_MEMBERS):
     """Fit the production signal on everything up to the embargo.
@@ -187,6 +187,18 @@ def fit(signal_name: str | None = None, quiet: bool = False,
         print(f"ensemble of {len(fitted)} fits, {size} names each, "
               f"from a roster of {len(names)}")
     return SubsetEnsemble(fitted), panel
+
+
+def fit(signal_name: str | None = None, quiet: bool = False, **kwargs):
+    import time
+
+    import model_timings
+
+    started = time.perf_counter()
+    result = _fit_all(signal_name, quiet, **kwargs)
+    model_timings.record(signal_name or config.PRODUCTION_SIGNAL, "fit",
+                         time.perf_counter() - started)
+    return result
 
 
 def save(signal, signal_name: str | None = None, path: str | None = None) -> str:

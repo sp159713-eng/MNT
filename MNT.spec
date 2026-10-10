@@ -28,7 +28,8 @@ from PyInstaller.utils.hooks import collect_all
 datas = [('mnt.ico', '.')]
 binaries = []
 hiddenimports = ['joblib', 'pandas', 'walkforward', 'backtest', 'metrics',
-                 'auth', 'training', 'scipy.stats', 'explain']
+                 'auth', 'training', 'scipy.stats', 'explain',
+                 'model_info', 'model_timings']
 
 for package in ('lightgbm', 'sklearn', 'yfinance', 'curl_cffi'):
     collected = collect_all(package)

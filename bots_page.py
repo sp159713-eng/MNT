@@ -3,16 +3,18 @@ from __future__ import annotations
 import os
 import sys
 import tkinter as tk
+from tkinter import font as tkfont
 from tkinter import ttk
 
+import model_info
 from pages import Page
 from theme import Button, Card, Chart, Palette
 
-COLUMNS = (("bot", 80, "BOT", "w"), ("signal", 170, "SIGNAL", "w"),
-           ("start", 85, "START", "center"), ("equity", 80, "EQUITY", "e"),
-           ("ret", 85, "RETURN %", "e"), ("nifty", 85, "VS NIFTY", "e"),
-           ("ew", 90, "VS EQ-WT", "e"), ("since", 100, "REBAL DAYS", "e"),
-           ("last", 95, "LAST RUN", "center"))
+COLUMNS = (("bot", 90, "BOT", "w"), ("signal", 140, "SIGNAL", "w"),
+           ("start", 80, "START", "center"), ("equity", 80, "EQUITY", "e"),
+           ("ret", 78, "RET %", "e"), ("nifty", 78, "VS NIFTY", "e"),
+           ("ew", 78, "VS EW", "e"), ("since", 90, "DAYS", "e"),
+           ("last", 90, "LAST RUN", "center"))
 
 
 def load_rows():
@@ -61,7 +63,7 @@ class BotsPage(Page):
         for key, width, heading, anchor in COLUMNS:
             self.tree.heading(key, text=heading)
             self.tree.column(key, width=width, anchor=anchor,
-                             stretch=key == "signal")
+                             minwidth=width, stretch=True)
         self.tree.pack(fill="x")
         self.tree.bind("<<TreeviewSelect>>", self._picked)
 
@@ -90,18 +92,31 @@ class BotsPage(Page):
         self.status.config(text=f"{len(rows)} bots")
         self.tree.delete(*self.tree.get_children())
         for index, r in enumerate(rows):
+            signal = model_info.label(r["signal"], short=True)
             if r["empty"]:
-                values = (r["name"], r["signal"] or "momentum", "no runs yet",
+                values = (r["name"], signal, "no runs yet",
                           "", "", "", "", "", "")
             else:
-                values = (r["name"], r["signal"] or "momentum", r["start"],
+                values = (r["name"], signal, r["start"],
                           f"{r['equity']:,.0f}", f"{r['ret']:+.2f}",
                           f"{r['vs_nifty']:+.2f}", f"{r['vs_ew']:+.2f}",
                           "-" if r["since"] is None else r["since"],
                           r["last_run"])
             self.tree.insert("", "end", iid=str(index), values=values)
+        self._fit_columns()
         self.selected = None
         self._draw()
+
+    def _fit_columns(self) -> None:
+        style = ttk.Style()
+        body = tkfont.Font(font=style.lookup("Treeview", "font"))
+        head = tkfont.Font(font=style.lookup("Treeview.Heading", "font"))
+        for position, (key, _width, heading, _anchor) in enumerate(COLUMNS):
+            need = head.measure(heading) + 26
+            for item in self.tree.get_children():
+                text = str(self.tree.item(item, "values")[position])
+                need = max(need, body.measure(text) + 12)
+            self.tree.column(key, minwidth=need, width=need)
 
     def _failed(self, error) -> None:
         self.refresh_button.set_enabled(True)
