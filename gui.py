@@ -734,6 +734,16 @@ class App(tk.Tk):
         self.minsize(960, 640)
         self.worker = Worker(self)
         self.capital = 500000.0
+        try:
+            import theme as theme_module
+
+            if theme_module.preferences().get("bot_funded"):
+                import broker as broker_module
+
+                self.capital = float(
+                    broker_module.broker("paper").state["opened"])
+        except Exception:                                       # noqa: BLE001
+            pass
         self.current = "Book"
         self.f = fonts()
         self.configure(bg=Palette.bg)

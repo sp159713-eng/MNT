@@ -87,3 +87,55 @@ def confirm(parent: tk.Misc, title: str, message: str, default_yes: bool = True,
         pass
     window.wait_window()
     return result["value"]
+
+
+def ask_amount(parent: tk.Misc, title: str, message: str, initial: str = ""):
+    window = tk.Toplevel(parent.winfo_toplevel())
+    result = {"value": None}
+
+    def finish(value):
+        result["value"] = value
+        window.destroy()
+
+    body = frame_window(window, title, on_close=lambda: finish(None))
+    f = fonts()
+    tk.Label(body, text=message, bg=Palette.bg, fg=Palette.muted,
+             font=f["body"], wraplength=320, justify="left",
+             anchor="w").pack(fill="x")
+    entry = tk.Entry(body, bg=Palette.panel_high, fg=Palette.text,
+                     insertbackground=Palette.text, relief="flat",
+                     font=f["body"])
+    entry.pack(fill="x", pady=(SPACE["md"], 0), ipady=4)
+    entry.insert(0, initial)
+
+    def submit(_event=None):
+        text = entry.get().strip().replace(",", "")
+        try:
+            amount = float(text)
+        except ValueError:
+            entry.config(fg=Palette.bad)
+            return
+        if amount != amount or amount in (float("inf"), float("-inf")):
+            entry.config(fg=Palette.bad)
+            return
+        finish(amount)
+
+    entry.bind("<Key>", lambda _e: entry.config(fg=Palette.text))
+    row = tk.Frame(body, bg=Palette.bg)
+    row.pack(fill="x", pady=(SPACE["lg"], 0))
+    Button(row, "OK", submit).pack(side="right")
+    Button(row, "Cancel", lambda: finish(None), kind="ghost").pack(
+        side="right", padx=(0, SPACE["sm"]))
+    window.bind("<Return>", submit)
+    centre(window, parent, 380, window.winfo_reqheight())
+    window.update_idletasks()
+    centre(window, parent, 380, window.winfo_reqheight())
+    window.transient(parent.winfo_toplevel())
+    window.focus_force()
+    entry.focus_set()
+    try:
+        window.grab_set()
+    except tk.TclError:
+        pass
+    window.wait_window()
+    return result["value"]

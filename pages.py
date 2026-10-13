@@ -20,7 +20,7 @@ import os
 import tkinter as tk
 from tkinter import ttk
 
-from dialogs import centre, confirm, frame_window
+from dialogs import ask_amount, centre, confirm, frame_window
 from theme import Button, Card, Chart, Palette, fonts
 
 
@@ -52,11 +52,20 @@ class AccountPage(Page):
         self.reset_button = Button(row, "Reset", self.reset, kind="ghost")
         self.reset_button.pack(side="right", padx=(8, 0))
         Button(row, "Refresh", self.refresh, kind="ghost").pack(side="right")
+        Button(row, "Take out", self.take_out, kind="ghost").pack(
+            side="right", padx=(0, 8))
+        Button(row, "Put in pool", self.put_in, kind="ghost").pack(
+            side="right", padx=(0, 8))
+        Button(row, "Set bank", self.set_bank, kind="ghost").pack(
+            side="right", padx=(0, 8))
+        self.status = tk.Label(row, text="", bg=Palette.bg, fg=Palette.muted,
+                               font=self.f["small"])
+        self.status.pack(side="right", padx=12)
 
         tiles = tk.Frame(self, bg=Palette.bg)
         tiles.pack(fill="x", pady=(0, 14))
         self.tiles = {}
-        for key, label in (("equity", "equity"), ("cash", "cash"),
+        for key, label in (("bank", "bank"), ("equity", "pool"), ("cash", "cash"),
                            ("pnl", "P&L"), ("trades", "fills")):
             card = Card(tiles)
             card.pack(side="left", expand=True, fill="both", padx=(0, 10))
@@ -105,6 +114,86 @@ class AccountPage(Page):
         broker_module.broker("paper").reset(self.app.capital)
         self.refresh()
 
+    def _bank(self) -> float:
+        import theme as theme_module
+
+        try:
+            return max(float(theme_module.preferences().get("bank", 0.0)), 0.0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    def _fail(self, text: str) -> None:
+        self.status.config(text=text, fg=Palette.bad)
+
+    def _finish(self, text: str) -> None:
+        self.status.config(text=text, fg=Palette.muted)
+        self.refresh()
+
+    def set_bank(self) -> None:
+        import theme as theme_module
+
+        amount = ask_amount(self, "Set bank", "Bank balance in Rs.",
+                            f"{self._bank():,.0f}")
+        if amount is None:
+            return
+        if amount < 0:
+            self._fail("Bank balance cannot be negative.")
+            return
+        theme_module.save_key("bank", amount)
+        self._finish(f"bank set to {amount:,.0f}")
+
+    def put_in(self) -> None:
+        import broker as broker_module
+        import theme as theme_module
+
+        amount = ask_amount(self, "Put in pool",
+                            "Rs to move from the bank into the pool.")
+        if amount is None:
+            return
+        bank = self._bank()
+        if amount <= 0:
+            self._fail("Amount must be above zero.")
+            return
+        if amount > bank:
+            self._fail(f"Bank holds only {bank:,.0f}.")
+            return
+        account = broker_module.broker("paper")
+        if theme_module.preferences().get("bot_funded"):
+            account.state["cash"] = float(account.state["cash"]) + amount
+            account.state["opened"] = float(
+                account.state.get("opened", 0.0)) + amount
+            account.save()
+        else:
+            account.reset(amount)
+        theme_module._write(dict(theme_module.preferences(),
+                                 bank=bank - amount, bot_funded=True))
+        self.app.capital = float(account.state["opened"])
+        self._finish(f"{amount:,.0f} moved into the pool")
+
+    def take_out(self) -> None:
+        import broker as broker_module
+        import theme as theme_module
+
+        amount = ask_amount(self, "Take out",
+                            "Rs to move from the pool's cash back to the bank.")
+        if amount is None:
+            return
+        account = broker_module.broker("paper")
+        if amount <= 0:
+            self._fail("Amount must be above zero.")
+            return
+        if amount > account.cash():
+            self._fail(f"Pool cash is only {account.cash():,.0f}.")
+            return
+        account.state["cash"] = float(account.state["cash"]) - amount
+        account.state["opened"] = max(
+            float(account.state.get("opened", 0.0)) - amount, 0.0)
+        account.save()
+        theme_module.save_key("bank", self._bank() + amount)
+        if theme_module.preferences().get("bot_funded"):
+            self.app.capital = float(account.state["opened"])
+        self._finish(f"{amount:,.0f} moved to the bank")
+
     def refresh(self) -> None:
         self.app.worker.submit(self._work, self._done, lambda e: None)
 
@@ -122,13 +211,14 @@ class AccountPage(Page):
             rows.append((symbol, position["qty"], f"{position['avg']:,.2f}",
                          f"{last:,.2f}",
                          f"{(last - position['avg']) * position['qty']:+,.0f}"))
-        return {"equity": equity, "cash": account.cash(),
+        return {"bank": self._bank(), "equity": equity, "cash": account.cash(),
                 "opened": account.state.get("opened", equity),
                 "positions": rows, "trades": account.state["trades"][-14:],
                 "count": len(account.state["trades"])}
 
     def _done(self, result) -> None:
         pnl = result["equity"] - result["opened"]
+        self.tiles["bank"].config(text=f"{result['bank']:,.0f}")
         self.tiles["equity"].config(text=f"{result['equity']:,.0f}")
         self.tiles["cash"].config(text=f"{result['cash']:,.0f}")
         self.tiles["pnl"].config(
