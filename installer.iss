@@ -2,7 +2,7 @@
 ; Production NSE equity trading system
 
 #define MyAppName "Ascent"
-#define MyAppVersion "1.4.3"
+#define MyAppVersion "1.4.4"
 #define MyAppPublisher "Ascent"
 #define MyAppExeName "MNT.exe"
 #define MyAppURL "https://github.com/sp159713-eng/MNT"
