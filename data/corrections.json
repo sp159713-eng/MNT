@@ -1,0 +1,2600 @@
+[
+ {
+  "symbol": "AAKASH",
+  "ex_date": "2022-02-03",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-02-03",
+  "source_ratio_check": 0.110009
+ },
+ {
+  "symbol": "AARON",
+  "ex_date": "2025-08-25",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-08-25",
+  "source_ratio_check": 0.555465
+ },
+ {
+  "symbol": "AASTHA",
+  "ex_date": "2026-09-28",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2026-09-28",
+  "source_ratio_check": 0.540429
+ },
+ {
+  "symbol": "ABFRL",
+  "ex_date": "2025-05-22",
+  "factor": 0.334077,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-05-22",
+  "source_ratio_check": 0.334077
+ },
+ {
+  "symbol": "ABIRLANUVO",
+  "ex_date": "2016-01-20",
+  "factor": 0.427078,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2016-01-20",
+  "source_ratio_check": 0.427078
+ },
+ {
+  "symbol": "ABREL",
+  "ex_date": "2019-10-11",
+  "factor": 0.446441,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2019-10-11",
+  "source_ratio_check": 0.446441
+ },
+ {
+  "symbol": "ADANIENT",
+  "ex_date": "2015-06-03",
+  "factor": 0.172292,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2015-06-03",
+  "source_ratio_check": 0.172292
+ },
+ {
+  "symbol": "ADANIENT",
+  "ex_date": "2015-06-03",
+  "factor": 0.612507,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2015-06-03",
+  "source_ratio_check": 0.612507
+ },
+ {
+  "symbol": "ADFFOODS",
+  "ex_date": "2023-09-11",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2023-09-11",
+  "source_ratio_check": 0.22534
+ },
+ {
+  "symbol": "ADVANIHOTR",
+  "ex_date": "2024-03-20",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-03-20",
+  "source_ratio_check": 0.468374
+ },
+ {
+  "symbol": "ADVENZYMES",
+  "ex_date": "2017-05-25",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2017-05-25",
+  "source_ratio_check": 0.216735
+ },
+ {
+  "symbol": "AFIL",
+  "ex_date": "2025-04-17",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-04-17",
+  "source_ratio_check": 0.112395
+ },
+ {
+  "symbol": "AGIIL",
+  "ex_date": "2025-10-10",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-10-10",
+  "source_ratio_check": 0.231226
+ },
+ {
+  "symbol": "AIIL",
+  "ex_date": "2026-01-13",
+  "factor": 0.2,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2026-01-13",
+  "source_ratio_check": 0.215549
+ },
+ {
+  "symbol": "AJANTPHARM",
+  "ex_date": "2013-09-17",
+  "factor": 0.727832,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2013-09-17",
+  "source_ratio_check": 0.727832,
+  "manual": true
+ },
+ {
+  "symbol": "ALANKIT",
+  "ex_date": "2015-09-23",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2015-09-23",
+  "source_ratio_check": 0.189246
+ },
+ {
+  "symbol": "ALANKIT",
+  "ex_date": "2016-10-19",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2016-10-19",
+  "source_ratio_check": 0.567597
+ },
+ {
+  "symbol": "ALEMBICLTD",
+  "ex_date": "2011-04-11",
+  "factor": 0.353945,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2011-04-11",
+  "source_ratio_check": 0.353945
+ },
+ {
+  "symbol": "ALEMBICLTD",
+  "ex_date": "2011-04-11",
+  "factor": 0.353851,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2011-04-11",
+  "source_ratio_check": 0.353851
+ },
+ {
+  "symbol": "ALEMBICLTD",
+  "ex_date": "2013-09-27",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-09-27",
+  "source_ratio_check": 0.527205
+ },
+ {
+  "symbol": "ALKYLAMINE",
+  "ex_date": "2021-05-11",
+  "factor": 0.4,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-05-11",
+  "source_ratio_check": 0.440003
+ },
+ {
+  "symbol": "ALLCARGO",
+  "ex_date": "2024-01-02",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-01-02",
+  "source_ratio_check": 0.273819
+ },
+ {
+  "symbol": "ALLCARGO",
+  "ex_date": "2025-11-12",
+  "factor": 0.350753,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2025-11-12",
+  "source_ratio_check": 0.350753
+ },
+ {
+  "symbol": "ALLCARGO",
+  "ex_date": "2025-11-12",
+  "factor": 0.350753,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-11-12",
+  "source_ratio_check": 0.350753
+ },
+ {
+  "symbol": "AMJLAND",
+  "ex_date": "2016-02-11",
+  "factor": 0.711353,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2016-02-11",
+  "source_ratio_check": 0.711353
+ },
+ {
+  "symbol": "ANANDRATHI",
+  "ex_date": "2025-03-05",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-03-05",
+  "source_ratio_check": 0.467313
+ },
+ {
+  "symbol": "ANANTRAJ",
+  "ex_date": "2020-10-06",
+  "factor": 0.561379,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2020-10-06",
+  "source_ratio_check": 0.561379
+ },
+ {
+  "symbol": "ANDHRAPAP",
+  "ex_date": "2024-09-11",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-09-11",
+  "source_ratio_check": 0.188251
+ },
+ {
+  "symbol": "ANSALHSG",
+  "ex_date": "2013-04-10",
+  "factor": 0.33333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-04-10",
+  "source_ratio_check": 0.380357
+ },
+ {
+  "symbol": "APOLLOPIPE",
+  "ex_date": "2021-12-02",
+  "factor": 0.33333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2021-12-02",
+  "source_ratio_check": 0.353045
+ },
+ {
+  "symbol": "ARTEMISMED",
+  "ex_date": "2021-09-23",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-09-23",
+  "source_ratio_check": 0.095082
+ },
+ {
+  "symbol": "ASHOKA",
+  "ex_date": "2018-07-12",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2018-07-12",
+  "source_ratio_check": 0.685351
+ },
+ {
+  "symbol": "ASTRAL",
+  "ex_date": "2021-03-18",
+  "factor": 0.75,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2021-03-18",
+  "source_ratio_check": 0.698921
+ },
+ {
+  "symbol": "AVADHSUGAR",
+  "ex_date": "2019-06-27",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2019-06-27",
+  "source_ratio_check": 0.549976
+ },
+ {
+  "symbol": "AVROIND",
+  "ex_date": "2026-05-05",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-05-05",
+  "source_ratio_check": 0.094729
+ },
+ {
+  "symbol": "BALMLAWRIE",
+  "ex_date": "2013-05-23",
+  "factor": 0.57142857,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-05-23",
+  "source_ratio_check": 0.566946
+ },
+ {
+  "symbol": "BALMLAWRIE",
+  "ex_date": "2016-12-26",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2016-12-26",
+  "source_ratio_check": 0.224813
+ },
+ {
+  "symbol": "BANCOINDIA",
+  "ex_date": "2024-12-30",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-12-30",
+  "source_ratio_check": 0.451709
+ },
+ {
+  "symbol": "BDL",
+  "ex_date": "2024-05-24",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-05-24",
+  "source_ratio_check": 0.541905
+ },
+ {
+  "symbol": "BEL",
+  "ex_date": "2017-03-16",
+  "factor": 0.105215,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2017-03-16",
+  "source_ratio_check": 0.105215,
+  "manual": true
+ },
+ {
+  "symbol": "BEPL",
+  "ex_date": "2023-07-05",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-07-05",
+  "source_ratio_check": 0.71778
+ },
+ {
+  "symbol": "BERGEPAINT",
+  "ex_date": "2015-01-08",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2015-01-08",
+  "source_ratio_check": 0.550545
+ },
+ {
+  "symbol": "BERGEPAINT",
+  "ex_date": "2016-07-15",
+  "factor": 0.71428571,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2016-07-15",
+  "source_ratio_check": 0.702801
+ },
+ {
+  "symbol": "BIGBLOC",
+  "ex_date": "2021-11-15",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-11-15",
+  "source_ratio_check": 0.213716
+ },
+ {
+  "symbol": "BIGBLOC",
+  "ex_date": "2024-09-12",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-09-12",
+  "source_ratio_check": 0.538309
+ },
+ {
+  "symbol": "BILENERGY",
+  "ex_date": "2018-01-11",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2018-01-11",
+  "source_ratio_check": 0.538462
+ },
+ {
+  "symbol": "BLS",
+  "ex_date": "2022-12-08",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-12-08",
+  "source_ratio_check": 0.528224
+ },
+ {
+  "symbol": "BORORENEW",
+  "ex_date": "2020-03-06",
+  "factor": 0.264036,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2020-03-06",
+  "source_ratio_check": 0.264036
+ },
+ {
+  "symbol": "BRIGADE",
+  "ex_date": "2019-08-28",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2019-08-28",
+  "source_ratio_check": 0.721252
+ },
+ {
+  "symbol": "BSLIMITED",
+  "ex_date": "2013-09-30",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-09-30",
+  "source_ratio_check": 0.450872
+ },
+ {
+  "symbol": "BSLIMITED",
+  "ex_date": "2014-01-21",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2014-01-21",
+  "source_ratio_check": 0.108705
+ },
+ {
+  "symbol": "CDSL",
+  "ex_date": "2024-08-23",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-08-23",
+  "source_ratio_check": 0.541217
+ },
+ {
+  "symbol": "CHEMBOND",
+  "ex_date": "2025-05-09",
+  "factor": 0.624178,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-05-09",
+  "source_ratio_check": 0.624178
+ },
+ {
+  "symbol": "CHOICEIN",
+  "ex_date": "2022-09-22",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-09-22",
+  "source_ratio_check": 0.528284
+ },
+ {
+  "symbol": "CLEDUCATE",
+  "ex_date": "2022-12-16",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-12-16",
+  "source_ratio_check": 0.531342
+ },
+ {
+  "symbol": "COASTCORP",
+  "ex_date": "2025-03-04",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-03-04",
+  "source_ratio_check": 0.224884
+ },
+ {
+  "symbol": "CPCAP",
+  "ex_date": "2025-05-09",
+  "factor": 0.624889,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-05-09",
+  "source_ratio_check": 0.624889
+ },
+ {
+  "symbol": "CUMMINSIND",
+  "ex_date": "2011-09-20",
+  "factor": 0.702727,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2011-09-20",
+  "source_ratio_check": 0.702727,
+  "manual": true
+ },
+ {
+  "symbol": "CUPID",
+  "ex_date": "2026-03-09",
+  "factor": 0.2,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2026-03-09",
+  "source_ratio_check": 0.227747
+ },
+ {
+  "symbol": "DAVANGERE",
+  "ex_date": "2024-05-31",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-05-31",
+  "source_ratio_check": 0.107071
+ },
+ {
+  "symbol": "DCMSRIND",
+  "ex_date": "2025-12-26",
+  "factor": 0.316682,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2025-12-26",
+  "source_ratio_check": 0.316682
+ },
+ {
+  "symbol": "DCMSRIND",
+  "ex_date": "2025-12-26",
+  "factor": 0.316682,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-12-26",
+  "source_ratio_check": 0.316682
+ },
+ {
+  "symbol": "DEEPAKNTR",
+  "ex_date": "2014-06-20",
+  "factor": 0.1,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2014-06-20",
+  "source_ratio_check": 0.106383
+ },
+ {
+  "symbol": "DHANUS",
+  "ex_date": "2011-08-29",
+  "factor": 0.29411765,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2011-08-29",
+  "source_ratio_check": 0.30916
+ },
+ {
+  "symbol": "DIXON",
+  "ex_date": "2021-03-18",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-03-18",
+  "source_ratio_check": 0.211223
+ },
+ {
+  "symbol": "DPSCLTD",
+  "ex_date": "2011-12-15",
+  "factor": 0.00434783,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2011-12-15",
+  "source_ratio_check": 0.004765
+ },
+ {
+  "symbol": "EASEMYTRIP",
+  "ex_date": "2024-11-29",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-11-29",
+  "source_ratio_check": 0.550995
+ },
+ {
+  "symbol": "ECLERX",
+  "ex_date": "2022-09-21",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-09-21",
+  "source_ratio_check": 0.700775
+ },
+ {
+  "symbol": "EDELWEISS",
+  "ex_date": "2023-06-02",
+  "factor": 0.552632,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2023-06-02",
+  "source_ratio_check": 0.552632
+ },
+ {
+  "symbol": "EIHAHOTELS",
+  "ex_date": "2024-08-13",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-08-13",
+  "source_ratio_check": 0.47168
+ },
+ {
+  "symbol": "ENGINERSIN",
+  "ex_date": "2016-12-30",
+  "factor": 0.448937,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2016-12-30",
+  "source_ratio_check": 0.448937,
+  "manual": true
+ },
+ {
+  "symbol": "FILATEX",
+  "ex_date": "2022-12-27",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-12-27",
+  "source_ratio_check": 0.547042
+ },
+ {
+  "symbol": "GAEL",
+  "ex_date": "2020-10-01",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2020-10-01",
+  "source_ratio_check": 0.557547
+ },
+ {
+  "symbol": "GENSOL",
+  "ex_date": "2023-10-17",
+  "factor": 0.33333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-10-17",
+  "source_ratio_check": 0.366674
+ },
+ {
+  "symbol": "GFLLIMITED",
+  "ex_date": "2019-08-06",
+  "factor": 0.108929,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2019-08-06",
+  "source_ratio_check": 0.108929
+ },
+ {
+  "symbol": "GLOBAL",
+  "ex_date": "2024-12-10",
+  "factor": 0.4,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-12-10",
+  "source_ratio_check": 0.420692
+ },
+ {
+  "symbol": "GLODYNE",
+  "ex_date": "2011-02-10",
+  "factor": 0.6,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2011-02-10",
+  "source_ratio_check": 0.634294
+ },
+ {
+  "symbol": "GMMPFAUDLR",
+  "ex_date": "2022-07-11",
+  "factor": 0.33333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-07-11",
+  "source_ratio_check": 0.353297
+ },
+ {
+  "symbol": "GNA",
+  "ex_date": "2023-09-01",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-09-01",
+  "source_ratio_check": 0.532114
+ },
+ {
+  "symbol": "GODFRYPHLP",
+  "ex_date": "2025-09-16",
+  "factor": 0.33333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-09-16",
+  "source_ratio_check": 0.356242
+ },
+ {
+  "symbol": "GODREJCP",
+  "ex_date": "2018-09-12",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2018-09-12",
+  "source_ratio_check": 0.693251
+ },
+ {
+  "symbol": "GOKULAGRO",
+  "ex_date": "2025-10-14",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-10-14",
+  "source_ratio_check": 0.453992
+ },
+ {
+  "symbol": "GOLDIAM",
+  "ex_date": "2022-03-28",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-03-28",
+  "source_ratio_check": 0.219651
+ },
+ {
+  "symbol": "GPTINFRA",
+  "ex_date": "2022-11-11",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-11-11",
+  "source_ratio_check": 0.557454
+ },
+ {
+  "symbol": "GREENLAM",
+  "ex_date": "2022-02-10",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-02-10",
+  "source_ratio_check": 0.188267
+ },
+ {
+  "symbol": "GREENLAM",
+  "ex_date": "2025-03-21",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-03-21",
+  "source_ratio_check": 0.468094
+ },
+ {
+  "symbol": "GROWWSLVR",
+  "ex_date": "2026-02-06",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-02-06",
+  "source_ratio_check": 0.094934
+ },
+ {
+  "symbol": "HARDWYN",
+  "ex_date": "2022-07-25",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-07-25",
+  "source_ratio_check": 0.69989
+ },
+ {
+  "symbol": "HARDWYN",
+  "ex_date": "2024-12-27",
+  "factor": 0.71428571,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-12-27",
+  "source_ratio_check": 0.656661
+ },
+ {
+  "symbol": "HAVELLS",
+  "ex_date": "2014-08-26",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2014-08-26",
+  "source_ratio_check": 0.218989
+ },
+ {
+  "symbol": "HEG",
+  "ex_date": "2026-09-07",
+  "factor": 0.373773,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2026-09-07",
+  "source_ratio_check": 0.373773,
+  "manual": true
+ },
+ {
+  "symbol": "HEGAM",
+  "ex_date": "2026-09-07",
+  "factor": 0.373773,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2026-09-07",
+  "source_ratio_check": 0.373773
+ },
+ {
+  "symbol": "HERCULES",
+  "ex_date": "2024-10-11",
+  "factor": 0.293858,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-10-11",
+  "source_ratio_check": 0.293858
+ },
+ {
+  "symbol": "HERITGFOOD",
+  "ex_date": "2013-07-26",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-07-26",
+  "source_ratio_check": 0.456698
+ },
+ {
+  "symbol": "HINDCOMPOS",
+  "ex_date": "2017-05-25",
+  "factor": 0.33333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2017-05-25",
+  "source_ratio_check": 0.356073
+ },
+ {
+  "symbol": "HIRECT",
+  "ex_date": "2026-03-27",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2026-03-27",
+  "source_ratio_check": 0.451763
+ },
+ {
+  "symbol": "HLEGLAS",
+  "ex_date": "2022-10-18",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-10-18",
+  "source_ratio_check": 0.189419
+ },
+ {
+  "symbol": "HMAAGRO",
+  "ex_date": "2023-12-29",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2023-12-29",
+  "source_ratio_check": 0.10989
+ },
+ {
+  "symbol": "HNGSNGBEES",
+  "ex_date": "2019-12-19",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2019-12-19",
+  "source_ratio_check": 0.113734
+ },
+ {
+  "symbol": "IDFC",
+  "ex_date": "2015-10-01",
+  "factor": 0.427862,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2015-10-01",
+  "source_ratio_check": 0.427862
+ },
+ {
+  "symbol": "IEX",
+  "ex_date": "2021-12-03",
+  "factor": 0.33333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2021-12-03",
+  "source_ratio_check": 0.350559
+ },
+ {
+  "symbol": "INDIAGLYCO",
+  "ex_date": "2025-08-12",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-08-12",
+  "source_ratio_check": 0.471927
+ },
+ {
+  "symbol": "INDIAGLYCO",
+  "ex_date": "2026-09-02",
+  "factor": 0.212467,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2026-09-02",
+  "source_ratio_check": 0.212467
+ },
+ {
+  "symbol": "INDIAGLYCO",
+  "ex_date": "2026-09-02",
+  "factor": 0.212467,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2026-09-02",
+  "source_ratio_check": 0.212467
+ },
+ {
+  "symbol": "INDOCO",
+  "ex_date": "2012-05-17",
+  "factor": 0.13333333,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2012-05-17",
+  "source_ratio_check": 0.133643
+ },
+ {
+  "symbol": "INDTERRAIN",
+  "ex_date": "2015-12-21",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2015-12-21",
+  "source_ratio_check": 0.22291
+ },
+ {
+  "symbol": "INFODRIVE",
+  "ex_date": "2014-12-24",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2014-12-24",
+  "source_ratio_check": 0.108844
+ },
+ {
+  "symbol": "INOXWIND",
+  "ex_date": "2024-05-24",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-05-24",
+  "source_ratio_check": 0.27266
+ },
+ {
+  "symbol": "INVENTURE",
+  "ex_date": "2012-05-22",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2012-05-22",
+  "source_ratio_check": 0.235338
+ },
+ {
+  "symbol": "INVENTURE",
+  "ex_date": "2021-06-24",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-06-24",
+  "source_ratio_check": 0.115482
+ },
+ {
+  "symbol": "IOLCP",
+  "ex_date": "2025-03-11",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-03-11",
+  "source_ratio_check": 0.189091
+ },
+ {
+  "symbol": "IRB",
+  "ex_date": "2023-02-22",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2023-02-22",
+  "source_ratio_check": 0.114473
+ },
+ {
+  "symbol": "IRB",
+  "ex_date": "2026-03-30",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2026-03-30",
+  "source_ratio_check": 0.540924
+ },
+ {
+  "symbol": "IRCON",
+  "ex_date": "2020-04-03",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2020-04-03",
+  "source_ratio_check": 0.231024
+ },
+ {
+  "symbol": "IRCTC",
+  "ex_date": "2021-10-28",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-10-28",
+  "source_ratio_check": 0.221178
+ },
+ {
+  "symbol": "IRISDOREME",
+  "ex_date": "2023-08-11",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2023-08-11",
+  "source_ratio_check": 0.21733
+ },
+ {
+  "symbol": "IRISDOREME",
+  "ex_date": "2025-07-04",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-07-01",
+  "source_ratio_check": 0.515727
+ },
+ {
+  "symbol": "IVC",
+  "ex_date": "2013-12-26",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-12-26",
+  "source_ratio_check": 0.673418
+ },
+ {
+  "symbol": "J&KBANK",
+  "ex_date": "2014-09-04",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2014-09-04",
+  "source_ratio_check": 0.106796
+ },
+ {
+  "symbol": "JAGSNPHARM",
+  "ex_date": "2025-01-08",
+  "factor": 0.4,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-01-08",
+  "source_ratio_check": 0.379294
+ },
+ {
+  "symbol": "JBMA",
+  "ex_date": "2025-01-31",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-01-31",
+  "source_ratio_check": 0.531796
+ },
+ {
+  "symbol": "JINDALPHOT",
+  "ex_date": "2016-05-12",
+  "factor": 0.528953,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2016-05-12",
+  "source_ratio_check": 0.528953
+ },
+ {
+  "symbol": "JINDWORLD",
+  "ex_date": "2018-10-31",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2018-10-31",
+  "source_ratio_check": 0.217617
+ },
+ {
+  "symbol": "JMA",
+  "ex_date": "2019-05-14",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2019-05-14",
+  "source_ratio_check": 0.214222
+ },
+ {
+  "symbol": "JMTAUTOLTD",
+  "ex_date": "2014-07-30",
+  "factor": 0.28571429,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2014-07-30",
+  "source_ratio_check": 0.30002
+ },
+ {
+  "symbol": "JMTAUTOLTD",
+  "ex_date": "2016-09-21",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2016-09-21",
+  "source_ratio_check": 0.545358
+ },
+ {
+  "symbol": "JOCIL",
+  "ex_date": "2011-09-27",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2011-09-27",
+  "source_ratio_check": 0.534442
+ },
+ {
+  "symbol": "JSL",
+  "ex_date": "2015-11-19",
+  "factor": 0.391304,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2015-11-19",
+  "source_ratio_check": 0.391304
+ },
+ {
+  "symbol": "JTLIND",
+  "ex_date": "2024-11-14",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-11-14",
+  "source_ratio_check": 0.534033
+ },
+ {
+  "symbol": "KAMDHENU",
+  "ex_date": "2022-09-06",
+  "factor": 0.534375,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2022-09-06",
+  "source_ratio_check": 0.534375
+ },
+ {
+  "symbol": "KAMDHENU",
+  "ex_date": "2025-01-08",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-01-08",
+  "source_ratio_check": 0.092844
+ },
+ {
+  "symbol": "KAMOPAINTS",
+  "ex_date": "2024-06-14",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-06-14",
+  "source_ratio_check": 0.210508
+ },
+ {
+  "symbol": "KANANIIND",
+  "ex_date": "2024-01-30",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-01-30",
+  "source_ratio_check": 0.526066
+ },
+ {
+  "symbol": "KANSAINER",
+  "ex_date": "2023-07-04",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-07-04",
+  "source_ratio_check": 0.691366
+ },
+ {
+  "symbol": "KAPSTON",
+  "ex_date": "2026-03-06",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2026-03-02",
+  "source_ratio_check": 0.69995
+ },
+ {
+  "symbol": "KESORAMIND",
+  "ex_date": "2025-03-10",
+  "factor": 0.047431,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2025-03-10",
+  "source_ratio_check": 0.047431
+ },
+ {
+  "symbol": "KMEW",
+  "ex_date": "2025-12-22",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-12-22",
+  "source_ratio_check": 0.546975
+ },
+ {
+  "symbol": "KPIGREEN",
+  "ex_date": "2024-02-15",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-02-15",
+  "source_ratio_check": 0.699998
+ },
+ {
+  "symbol": "KPIGREEN",
+  "ex_date": "2025-01-03",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-01-03",
+  "source_ratio_check": 0.638531
+ },
+ {
+  "symbol": "KPRMILL",
+  "ex_date": "2016-11-29",
+  "factor": 0.533985,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2016-11-29",
+  "source_ratio_check": 0.533985,
+  "manual": true
+ },
+ {
+  "symbol": "KPRMILL",
+  "ex_date": "2021-09-24",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-09-24",
+  "source_ratio_check": 0.219924
+ },
+ {
+  "symbol": "KRISHANA",
+  "ex_date": "2026-07-03",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-07-03",
+  "source_ratio_check": 0.212824
+ },
+ {
+  "symbol": "KUANTUM",
+  "ex_date": "2020-07-14",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2020-07-14",
+  "source_ratio_check": 0.109966
+ },
+ {
+  "symbol": "LANCER",
+  "ex_date": "2022-12-16",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-12-16",
+  "source_ratio_check": 0.528529
+ },
+ {
+  "symbol": "LAOPALA",
+  "ex_date": "2014-09-24",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2014-09-24",
+  "source_ratio_check": 0.186236
+ },
+ {
+  "symbol": "LAOPALA",
+  "ex_date": "2018-03-22",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2018-03-22",
+  "source_ratio_check": 0.449123
+ },
+ {
+  "symbol": "LEMERITE",
+  "ex_date": "2026-05-29",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-05-29",
+  "source_ratio_check": 0.190012
+ },
+ {
+  "symbol": "LIKHITHA",
+  "ex_date": "2022-12-02",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-12-02",
+  "source_ratio_check": 0.56771
+ },
+ {
+  "symbol": "LUMAXTECH",
+  "ex_date": "2018-06-07",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2018-06-07",
+  "source_ratio_check": 0.21849
+ },
+ {
+  "symbol": "MANAKSIA",
+  "ex_date": "2014-12-04",
+  "factor": 0.377246,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2014-12-04",
+  "source_ratio_check": 0.377246
+ },
+ {
+  "symbol": "MANAKSIA",
+  "ex_date": "2014-12-04",
+  "factor": 0.377246,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2014-12-04",
+  "source_ratio_check": 0.377246
+ },
+ {
+  "symbol": "MANDHANA",
+  "ex_date": "2016-09-22",
+  "factor": 0.350554,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2016-09-22",
+  "source_ratio_check": 0.350554
+ },
+ {
+  "symbol": "MARATHON",
+  "ex_date": "2018-04-05",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2018-04-05",
+  "source_ratio_check": 0.563218
+ },
+ {
+  "symbol": "MARINE",
+  "ex_date": "2021-02-18",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-02-18",
+  "source_ratio_check": 0.224138
+ },
+ {
+  "symbol": "MFSL",
+  "ex_date": "2016-01-27",
+  "factor": 0.739186,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2016-01-27",
+  "source_ratio_check": 0.739186
+ },
+ {
+  "symbol": "MGEL",
+  "ex_date": "2022-08-18",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-08-18",
+  "source_ratio_check": 0.219655
+ },
+ {
+  "symbol": "MGEL",
+  "ex_date": "2025-03-04",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-03-04",
+  "source_ratio_check": 0.553997
+ },
+ {
+  "symbol": "MHLXMIRU",
+  "ex_date": "2024-04-19",
+  "factor": 0.725275,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-04-19",
+  "source_ratio_check": 0.725275
+ },
+ {
+  "symbol": "MHRIL",
+  "ex_date": "2021-09-08",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2021-09-08",
+  "source_ratio_check": 0.700368
+ },
+ {
+  "symbol": "MIRZAINT",
+  "ex_date": "2023-03-29",
+  "factor": 0.137038,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2023-03-29",
+  "source_ratio_check": 0.137038
+ },
+ {
+  "symbol": "MMFL",
+  "ex_date": "2018-07-18",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2018-07-18",
+  "source_ratio_check": 0.464952
+ },
+ {
+  "symbol": "MMTC",
+  "ex_date": "2018-05-03",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2018-05-03",
+  "source_ratio_check": 0.726408
+ },
+ {
+  "symbol": "MOHITIND",
+  "ex_date": "2016-03-30",
+  "factor": 0.718033,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2016-03-30",
+  "source_ratio_check": 0.718033
+ },
+ {
+  "symbol": "MOHITIND",
+  "ex_date": "2016-03-30",
+  "factor": 0.718033,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2016-03-30",
+  "source_ratio_check": 0.718033
+ },
+ {
+  "symbol": "MON100",
+  "ex_date": "2021-06-17",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2021-06-17",
+  "source_ratio_check": 0.099319
+ },
+ {
+  "symbol": "MOTILALOFS",
+  "ex_date": "2024-06-10",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-06-10",
+  "source_ratio_check": 0.270367
+ },
+ {
+  "symbol": "MSUMI",
+  "ex_date": "2022-11-16",
+  "factor": 0.71428571,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-11-16",
+  "source_ratio_check": 0.730723
+ },
+ {
+  "symbol": "NARMADA",
+  "ex_date": "2026-07-31",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-07-31",
+  "source_ratio_check": 0.470296
+ },
+ {
+  "symbol": "NATIONALUM",
+  "ex_date": "2011-03-15",
+  "factor": 0.227263,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2011-03-15",
+  "source_ratio_check": 0.227263,
+  "manual": true
+ },
+ {
+  "symbol": "NBCC",
+  "ex_date": "2017-02-17",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2017-02-17",
+  "source_ratio_check": 0.605359
+ },
+ {
+  "symbol": "NBIFIN",
+  "ex_date": "2017-12-07",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2017-12-07",
+  "source_ratio_check": 0.565462
+ },
+ {
+  "symbol": "NEXTMEDIA",
+  "ex_date": "2011-01-20",
+  "factor": 0.21761,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2011-01-20",
+  "source_ratio_check": 0.21761
+ },
+ {
+  "symbol": "NIITLTD",
+  "ex_date": "2023-06-08",
+  "factor": 0.238653,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2023-06-08",
+  "source_ratio_check": 0.238653
+ },
+ {
+  "symbol": "NITINFIRE",
+  "ex_date": "2011-09-22",
+  "factor": 0.28571429,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2011-09-22",
+  "source_ratio_check": 0.314481
+ },
+ {
+  "symbol": "NRL",
+  "ex_date": "2024-03-20",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-03-20",
+  "source_ratio_check": 0.719807
+ },
+ {
+  "symbol": "NYKAA",
+  "ex_date": "2022-11-10",
+  "factor": 0.16666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-11-10",
+  "source_ratio_check": 0.177544
+ },
+ {
+  "symbol": "OIL",
+  "ex_date": "2017-01-12",
+  "factor": 0.715258,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2017-01-12",
+  "source_ratio_check": 0.715258,
+  "manual": true
+ },
+ {
+  "symbol": "OIL",
+  "ex_date": "2018-03-27",
+  "factor": 0.633085,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2018-03-27",
+  "source_ratio_check": 0.633085,
+  "manual": true
+ },
+ {
+  "symbol": "OMKARCHEM",
+  "ex_date": "2017-06-12",
+  "factor": 0.461224,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2017-06-12",
+  "source_ratio_check": 0.461224
+ },
+ {
+  "symbol": "ONGC",
+  "ex_date": "2011-02-08",
+  "factor": 0.236114,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2011-02-08",
+  "source_ratio_check": 0.236114,
+  "manual": true
+ },
+ {
+  "symbol": "ORIENTPPR",
+  "ex_date": "2013-03-07",
+  "factor": 0.196281,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2013-03-07",
+  "source_ratio_check": 0.196281
+ },
+ {
+  "symbol": "ORIENTPPR",
+  "ex_date": "2018-01-11",
+  "factor": 0.304335,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2018-01-11",
+  "source_ratio_check": 0.304335
+ },
+ {
+  "symbol": "PAISALO",
+  "ex_date": "2022-06-30",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-06-30",
+  "source_ratio_check": 0.090323
+ },
+ {
+  "symbol": "PARAS",
+  "ex_date": "2025-07-04",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-07-04",
+  "source_ratio_check": 0.549953
+ },
+ {
+  "symbol": "PARRYSUGAR",
+  "ex_date": "2013-03-21",
+  "factor": 0.38,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2013-03-21",
+  "source_ratio_check": 0.38
+ },
+ {
+  "symbol": "PAVNAIND",
+  "ex_date": "2025-09-01",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-09-01",
+  "source_ratio_check": 0.091844
+ },
+ {
+  "symbol": "PCBL",
+  "ex_date": "2022-04-11",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-04-11",
+  "source_ratio_check": 0.540693
+ },
+ {
+  "symbol": "PEL",
+  "ex_date": "2022-08-30",
+  "factor": 0.552063,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2022-08-30",
+  "source_ratio_check": 0.552063
+ },
+ {
+  "symbol": "PERSISTENT",
+  "ex_date": "2015-03-10",
+  "factor": 0.455169,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2015-03-10",
+  "source_ratio_check": 0.455169,
+  "manual": true
+ },
+ {
+  "symbol": "PIIND",
+  "ex_date": "2013-04-12",
+  "factor": 0.21519,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2013-04-12",
+  "source_ratio_check": 0.21519,
+  "manual": true
+ },
+ {
+  "symbol": "POLYMED",
+  "ex_date": "2017-03-24",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2017-03-24",
+  "source_ratio_check": 0.45366
+ },
+ {
+  "symbol": "POWERGRID",
+  "ex_date": "2023-09-12",
+  "factor": 0.75,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-09-12",
+  "source_ratio_check": 0.723251
+ },
+ {
+  "symbol": "PRECOT",
+  "ex_date": "2013-10-03",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-10-03",
+  "source_ratio_check": 0.699612
+ },
+ {
+  "symbol": "PRECWIRE",
+  "ex_date": "2022-12-22",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-12-22",
+  "source_ratio_check": 0.706274
+ },
+ {
+  "symbol": "PREMEXPLN",
+  "ex_date": "2024-06-21",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-06-21",
+  "source_ratio_check": 0.215776
+ },
+ {
+  "symbol": "PTL",
+  "ex_date": "2017-03-27",
+  "factor": 0.371871,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2017-03-27",
+  "source_ratio_check": 0.371871
+ },
+ {
+  "symbol": "PTL",
+  "ex_date": "2017-03-27",
+  "factor": 0.371871,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2017-03-27",
+  "source_ratio_check": 0.371871
+ },
+ {
+  "symbol": "QUESS",
+  "ex_date": "2025-04-15",
+  "factor": 0.492974,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-04-15",
+  "source_ratio_check": 0.492974
+ },
+ {
+  "symbol": "RADHIKAJWE",
+  "ex_date": "2023-05-26",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2023-05-26",
+  "source_ratio_check": 0.220067
+ },
+ {
+  "symbol": "RAJMET",
+  "ex_date": "2021-09-02",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2021-09-02",
+  "source_ratio_check": 0.699257
+ },
+ {
+  "symbol": "RAJTV",
+  "ex_date": "2014-03-25",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2014-03-25",
+  "source_ratio_check": 0.263891
+ },
+ {
+  "symbol": "RAMASTEEL",
+  "ex_date": "2023-01-06",
+  "factor": 0.2,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-01-06",
+  "source_ratio_check": 0.219821
+ },
+ {
+  "symbol": "RASOYPR",
+  "ex_date": "2013-03-21",
+  "factor": 0.06666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-03-21",
+  "source_ratio_check": 0.073034
+ },
+ {
+  "symbol": "RATNAMANI",
+  "ex_date": "2022-06-30",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-06-30",
+  "source_ratio_check": 0.656313
+ },
+ {
+  "symbol": "RAYMOND",
+  "ex_date": "2024-07-11",
+  "factor": 0.634105,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-07-11",
+  "source_ratio_check": 0.634105
+ },
+ {
+  "symbol": "RAYMOND",
+  "ex_date": "2024-07-11",
+  "factor": 0.634105,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2024-07-11",
+  "source_ratio_check": 0.634105
+ },
+ {
+  "symbol": "RAYMOND",
+  "ex_date": "2025-05-14",
+  "factor": 0.352362,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2025-05-14",
+  "source_ratio_check": 0.352362
+ },
+ {
+  "symbol": "RAYMOND",
+  "ex_date": "2025-05-14",
+  "factor": 0.352362,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-05-14",
+  "source_ratio_check": 0.352362
+ },
+ {
+  "symbol": "REDTAPE",
+  "ex_date": "2025-02-04",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-02-04",
+  "source_ratio_check": 0.266483
+ },
+ {
+  "symbol": "RELAXO",
+  "ex_date": "2013-11-22",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2013-11-22",
+  "source_ratio_check": 0.216502
+ },
+ {
+  "symbol": "RITES",
+  "ex_date": "2024-09-20",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-09-20",
+  "source_ratio_check": 0.546053
+ },
+ {
+  "symbol": "RKFORGE",
+  "ex_date": "2022-03-14",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-03-14",
+  "source_ratio_check": 0.215148
+ },
+ {
+  "symbol": "ROLEXRINGS",
+  "ex_date": "2025-10-17",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-10-17",
+  "source_ratio_check": 0.095026
+ },
+ {
+  "symbol": "ROSSELLIND",
+  "ex_date": "2024-09-20",
+  "factor": 0.274833,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-09-20",
+  "source_ratio_check": 0.274833
+ },
+ {
+  "symbol": "ROSSELLIND",
+  "ex_date": "2024-09-20",
+  "factor": 0.274833,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2024-09-20",
+  "source_ratio_check": 0.274833
+ },
+ {
+  "symbol": "RPEL",
+  "ex_date": "2024-11-29",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-11-29",
+  "source_ratio_check": 0.474294
+ },
+ {
+  "symbol": "RUSHIL",
+  "ex_date": "2024-08-09",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-08-09",
+  "source_ratio_check": 0.113322
+ },
+ {
+  "symbol": "SAFARI",
+  "ex_date": "2023-12-12",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-12-12",
+  "source_ratio_check": 0.543741
+ },
+ {
+  "symbol": "SAGARDEEP",
+  "ex_date": "2020-10-05",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2020-10-05",
+  "source_ratio_check": 0.699534
+ },
+ {
+  "symbol": "SAKSOFT",
+  "ex_date": "2022-09-23",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-09-23",
+  "source_ratio_check": 0.090483
+ },
+ {
+  "symbol": "SALASAR",
+  "ex_date": "2022-06-27",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-06-27",
+  "source_ratio_check": 0.116093
+ },
+ {
+  "symbol": "SALASAR",
+  "ex_date": "2024-02-01",
+  "factor": 0.2,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-02-01",
+  "source_ratio_check": 0.218153
+ },
+ {
+  "symbol": "SANDUMA",
+  "ex_date": "2024-02-02",
+  "factor": 0.16666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2024-02-02",
+  "source_ratio_check": 0.183324
+ },
+ {
+  "symbol": "SANOFI",
+  "ex_date": "2024-06-13",
+  "factor": 0.646607,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-06-13",
+  "source_ratio_check": 0.646607
+ },
+ {
+  "symbol": "SANOFI",
+  "ex_date": "2024-06-13",
+  "factor": 0.646607,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2024-06-13",
+  "source_ratio_check": 0.646607
+ },
+ {
+  "symbol": "SBC",
+  "ex_date": "2025-03-10",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-03-10",
+  "source_ratio_check": 0.680387
+ },
+ {
+  "symbol": "SBCL",
+  "ex_date": "2022-10-12",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-10-12",
+  "source_ratio_check": 0.696842
+ },
+ {
+  "symbol": "SBGLP",
+  "ex_date": "2024-04-18",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-04-18",
+  "source_ratio_check": 0.1114
+ },
+ {
+  "symbol": "SDBL",
+  "ex_date": "2020-10-15",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2020-10-15",
+  "source_ratio_check": 0.549729
+ },
+ {
+  "symbol": "SDBL",
+  "ex_date": "2024-05-24",
+  "factor": 0.4,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-05-24",
+  "source_ratio_check": 0.446234
+ },
+ {
+  "symbol": "SECURCRED",
+  "ex_date": "2023-01-04",
+  "factor": 0.25,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-01-04",
+  "source_ratio_check": 0.287186
+ },
+ {
+  "symbol": "SEMAC",
+  "ex_date": "2024-05-03",
+  "factor": 0.646589,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-05-03",
+  "source_ratio_check": 0.646589
+ },
+ {
+  "symbol": "SEMAC",
+  "ex_date": "2024-05-03",
+  "factor": 0.646589,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2024-05-03",
+  "source_ratio_check": 0.646589
+ },
+ {
+  "symbol": "SHALPAINTS",
+  "ex_date": "2012-11-22",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2012-11-22",
+  "source_ratio_check": 0.214754
+ },
+ {
+  "symbol": "SHANKARA",
+  "ex_date": "2025-09-24",
+  "factor": 0.244573,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-09-24",
+  "source_ratio_check": 0.244573
+ },
+ {
+  "symbol": "SHILPI",
+  "ex_date": "2014-09-16",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2014-09-16",
+  "source_ratio_check": 0.475058
+ },
+ {
+  "symbol": "SHRENUJ",
+  "ex_date": "2014-07-15",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2014-07-15",
+  "source_ratio_check": 0.535759
+ },
+ {
+  "symbol": "SHRIRAMFIN",
+  "ex_date": "2025-01-10",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-01-10",
+  "source_ratio_check": 0.189334
+ },
+ {
+  "symbol": "SIEMENS",
+  "ex_date": "2025-04-07",
+  "factor": 0.570691,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2025-04-07",
+  "source_ratio_check": 0.570691
+ },
+ {
+  "symbol": "SIGMA",
+  "ex_date": "2025-10-06",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2025-10-06",
+  "source_ratio_check": 0.116034
+ },
+ {
+  "symbol": "SIKKO",
+  "ex_date": "2022-10-28",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-10-28",
+  "source_ratio_check": 0.699652
+ },
+ {
+  "symbol": "SINTEX",
+  "ex_date": "2017-05-25",
+  "factor": 0.248319,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2017-05-25",
+  "source_ratio_check": 0.248319
+ },
+ {
+  "symbol": "SIRCA",
+  "ex_date": "2023-05-11",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-05-11",
+  "source_ratio_check": 0.547072
+ },
+ {
+  "symbol": "SKFINDIA",
+  "ex_date": "2025-10-15",
+  "factor": 0.45246,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2025-10-15",
+  "source_ratio_check": 0.45246
+ },
+ {
+  "symbol": "SKFINDIA",
+  "ex_date": "2025-10-15",
+  "factor": 0.45246,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-10-15",
+  "source_ratio_check": 0.45246
+ },
+ {
+  "symbol": "SKMEGGPROD",
+  "ex_date": "2026-01-12",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-01-12",
+  "source_ratio_check": 0.464758
+ },
+ {
+  "symbol": "SMSPHARMA",
+  "ex_date": "2015-12-17",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2015-12-17",
+  "source_ratio_check": 0.106012
+ },
+ {
+  "symbol": "SONATSOFTW",
+  "ex_date": "2023-12-12",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-12-12",
+  "source_ratio_check": 0.535243
+ },
+ {
+  "symbol": "SOTL",
+  "ex_date": "2022-09-01",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-09-01",
+  "source_ratio_check": 0.221301
+ },
+ {
+  "symbol": "SOUISPAT",
+  "ex_date": "2014-09-22",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2014-09-22",
+  "source_ratio_check": 0.113208
+ },
+ {
+  "symbol": "SPORTKING",
+  "ex_date": "2024-09-13",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-09-13",
+  "source_ratio_check": 0.09367
+ },
+ {
+  "symbol": "SREINFRA",
+  "ex_date": "2011-02-10",
+  "factor": 0.55555556,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2011-02-10",
+  "source_ratio_check": 0.559779
+ },
+ {
+  "symbol": "SRPL",
+  "ex_date": "2023-05-19",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2023-05-19",
+  "source_ratio_check": 0.109015
+ },
+ {
+  "symbol": "SRSLTD",
+  "ex_date": "2015-06-25",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2015-06-25",
+  "source_ratio_check": 0.56338
+ },
+ {
+  "symbol": "STAR",
+  "ex_date": "2024-12-06",
+  "factor": 0.459614,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-12-06",
+  "source_ratio_check": 0.459614
+ },
+ {
+  "symbol": "STAR",
+  "ex_date": "2024-12-06",
+  "factor": 0.459614,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2024-12-06",
+  "source_ratio_check": 0.459614
+ },
+ {
+  "symbol": "SUJANATOW",
+  "ex_date": "2011-01-10",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2011-01-10",
+  "source_ratio_check": 0.190169
+ },
+ {
+  "symbol": "SUKHJITS",
+  "ex_date": "2024-10-25",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2024-10-25",
+  "source_ratio_check": 0.474172
+ },
+ {
+  "symbol": "SUVEN",
+  "ex_date": "2020-01-21",
+  "factor": 0.052911,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2020-01-21",
+  "source_ratio_check": 0.052911
+ },
+ {
+  "symbol": "TARIL",
+  "ex_date": "2025-02-14",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-02-14",
+  "source_ratio_check": 0.475028
+ },
+ {
+  "symbol": "TATACHEM",
+  "ex_date": "2020-03-04",
+  "factor": 0.434744,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2020-03-04",
+  "source_ratio_check": 0.434744
+ },
+ {
+  "symbol": "TATAMTRDVR",
+  "ex_date": "2011-09-12",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2011-09-12",
+  "source_ratio_check": 0.189653
+ },
+ {
+  "symbol": "TCC",
+  "ex_date": "2026-09-04",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-09-04",
+  "source_ratio_check": 0.189165
+ },
+ {
+  "symbol": "TCI",
+  "ex_date": "2016-08-26",
+  "factor": 0.530299,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2016-08-26",
+  "source_ratio_check": 0.530299,
+  "manual": true
+ },
+ {
+  "symbol": "TEMBO",
+  "ex_date": "2026-08-05",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-08-05",
+  "source_ratio_check": 0.114778
+ },
+ {
+  "symbol": "THANGAMAYL",
+  "ex_date": "2023-07-17",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2023-07-17",
+  "source_ratio_check": 0.53573
+ },
+ {
+  "symbol": "THOMASCOOK",
+  "ex_date": "2019-12-05",
+  "factor": 0.444482,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2019-12-05",
+  "source_ratio_check": 0.444482
+ },
+ {
+  "symbol": "TIMETECHNO",
+  "ex_date": "2025-09-23",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2025-09-23",
+  "source_ratio_check": 0.474571
+ },
+ {
+  "symbol": "TIRUMALCHM",
+  "ex_date": "2018-08-14",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2018-08-14",
+  "source_ratio_check": 0.107782
+ },
+ {
+  "symbol": "TITAN",
+  "ex_date": "2011-06-23",
+  "factor": 0.05,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2011-06-23",
+  "source_ratio_check": 0.053326
+ },
+ {
+  "symbol": "TMPV",
+  "ex_date": "2025-10-14",
+  "factor": 0.598487,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2025-10-14",
+  "source_ratio_check": 0.598487
+ },
+ {
+  "symbol": "TPLPLASTEH",
+  "ex_date": "2021-09-16",
+  "factor": 0.5,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2021-09-16",
+  "source_ratio_check": 0.567651
+ },
+ {
+  "symbol": "TPLPLASTEH",
+  "ex_date": "2022-10-19",
+  "factor": 0.2,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2022-10-19",
+  "source_ratio_check": 0.222284
+ },
+ {
+  "symbol": "TRIDENT",
+  "ex_date": "2019-12-13",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2019-12-13",
+  "source_ratio_check": 0.112275
+ },
+ {
+  "symbol": "TRIVENI",
+  "ex_date": "2026-07-22",
+  "factor": 0.584305,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2026-07-22",
+  "source_ratio_check": 0.584305
+ },
+ {
+  "symbol": "UPL",
+  "ex_date": "2019-07-02",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2019-07-02",
+  "source_ratio_check": 0.691995
+ },
+ {
+  "symbol": "VBL",
+  "ex_date": "2019-07-25",
+  "factor": 0.700017,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2019-07-25",
+  "source_ratio_check": 0.700017,
+  "manual": true
+ },
+ {
+  "symbol": "VBL",
+  "ex_date": "2021-06-10",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2021-06-10",
+  "source_ratio_check": 0.685976
+ },
+ {
+  "symbol": "VEDL",
+  "ex_date": "2026-04-30",
+  "factor": 0.351021,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2026-04-30",
+  "source_ratio_check": 0.351021
+ },
+ {
+  "symbol": "VEDL",
+  "ex_date": "2026-04-30",
+  "factor": 0.351021,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2026-04-30",
+  "source_ratio_check": 0.351021
+ },
+ {
+  "symbol": "VENKEYS",
+  "ex_date": "2015-12-21",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2015-12-21",
+  "source_ratio_check": 0.722463
+ },
+ {
+  "symbol": "VGL",
+  "ex_date": "2026-03-02",
+  "factor": 0.5,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2026-03-02",
+  "source_ratio_check": 0.53884
+ },
+ {
+  "symbol": "VGUARD",
+  "ex_date": "2016-08-30",
+  "factor": 0.1,
+  "kind": "split",
+  "source": "both",
+  "jump_date": "2016-08-30",
+  "source_ratio_check": 0.1061
+ },
+ {
+  "symbol": "VGUARD",
+  "ex_date": "2017-03-15",
+  "factor": 0.71428571,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2017-03-15",
+  "source_ratio_check": 0.714143
+ },
+ {
+  "symbol": "VKSPL",
+  "ex_date": "2013-05-03",
+  "factor": 0.28571429,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2013-05-03",
+  "source_ratio_check": 0.299065
+ },
+ {
+  "symbol": "VSTIND",
+  "ex_date": "2024-09-06",
+  "factor": 0.10799,
+  "kind": "demerger",
+  "source": "nse",
+  "jump_date": "2024-09-06",
+  "source_ratio_check": 0.10799,
+  "manual": true
+ },
+ {
+  "symbol": "XPROINDIA",
+  "ex_date": "2022-07-01",
+  "factor": 0.66666667,
+  "kind": "bonus",
+  "source": "both",
+  "jump_date": "2022-07-01",
+  "source_ratio_check": 0.699987
+ }
+]

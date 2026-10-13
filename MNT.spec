@@ -25,7 +25,7 @@
 
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('mnt.ico', '.')]
+datas = [('mnt.ico', '.'), ('data/corrections.json', 'data')]
 binaries = []
 hiddenimports = ['joblib', 'pandas', 'walkforward', 'backtest', 'metrics',
                  'auth', 'training', 'scipy.stats', 'explain',

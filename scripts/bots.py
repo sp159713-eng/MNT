@@ -36,6 +36,7 @@ BOTS = {
     "regime360": {"signal": "regime:blend:lightgbm+mom_252"},
     "nnblend": {"signal": "blend:nn346+mom_252"},
     "sect360": {"signal": "sect:blend:lightgbm+mom_252"},
+    "sect360_t40": {"signal": "sect:blend:lightgbm+mom_252", "every": 40},
 }
 
 
@@ -230,7 +231,7 @@ def run_bot(name, spec, closes, date):
     state.setdefault("start_date", day)
     due = (not venue.holdings()
            or trading_days_since(closes, state.get("last_rebalance"), date)
-           >= REBALANCE_DAYS)
+           >= spec.get("every", REBALANCE_DAYS))
     if due and state.get("last_rebalance") != day:
         rebalance(name, spec, venue, closes, date, state)
     equity, _ = venue.value()

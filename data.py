@@ -43,6 +43,8 @@ import time
 import numpy as np
 import pandas as pd
 
+import corrections
+
 # Next to the exe when frozen, not next to this module: PyInstaller unpacks
 # modules under _internal, which the installer deletes on every update, so a
 # cache rooted at __file__ is wiped by each upgrade and disagrees with
@@ -200,6 +202,8 @@ def fetch(symbol: str, interval: str = "1d", period: str | None = None,
     frame.index.name = "timestamp"
     frame = frame[~frame.index.duplicated(keep="last")].sort_index()
     frame.to_csv(path)                              # cache stays raw
+    if not unadjusted and interval == "1d":
+        frame = corrections.apply(frame, symbol, "yahoo")
     if clean:
         frame = clean_bars(frame, symbol, quiet)
     return _slice(frame, start, end)
@@ -219,6 +223,15 @@ def clear_memo() -> None:
     _MEMO.clear()
 
 
+def _corrected(frame: pd.DataFrame, path: str, symbol: str) -> pd.DataFrame:
+    norm = path.replace("\\", "/")
+    if "/nse/adj/" in norm:
+        return corrections.apply(frame, symbol, "nse")
+    if norm.endswith("_1d_adj.csv") and not is_us(symbol):
+        return corrections.apply(frame, symbol, "yahoo")
+    return frame
+
+
 def _memoised(path: str, symbol: str, clean: bool, quiet: bool):
     try:
         key = (path, os.path.getmtime(path), clean)
@@ -229,6 +242,7 @@ def _memoised(path: str, symbol: str, clean: bool, quiet: bool):
         frame = pd.read_csv(path, index_col=0, parse_dates=True)
         if not len(frame):
             return frame
+        frame = _corrected(frame, path, symbol)
         if clean:
             frame = clean_bars(frame, symbol, quiet)
         if len(_MEMO) >= _MEMO_MAX:

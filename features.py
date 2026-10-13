@@ -41,6 +41,7 @@ import numpy as np
 import pandas as pd
 
 import config
+import corrections
 import data as data_module
 import fo_features
 
@@ -468,7 +469,7 @@ def _panel_key(symbols: list[str]) -> str:
                 h.update(handle.read())
     h.update(fo_features.key_bytes())
     h.update(f"{config.TARGET_HORIZON}|{config.START}|{config.BENCHMARK}|"
-             f"{os.environ.get('MNT_DATA_SOURCE', '')}".encode())
+             f"{os.environ.get('MNT_DATA_SOURCE', '')}|{corrections.version()}".encode())
     for symbol in sorted(symbols) + [config.BENCHMARK]:
         path = data_module._cache_path(symbol, "1d", False)
         stat = os.stat(path) if os.path.exists(path) else None
