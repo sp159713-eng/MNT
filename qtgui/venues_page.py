@@ -1,8 +1,18 @@
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
-from qfluentwidgets import (BodyLabel, CaptionLabel, LineEdit,
+from qfluentwidgets import (BodyLabel, CaptionLabel, LineEdit, PasswordLineEdit,
                             PrimaryPushButton, PushButton)
 
 from qtgui.common import TitledCard, set_tone, title_row
+
+SECRET_WORDS = ("key", "secret", "token", "pin", "password", "totp")
+
+
+def is_secret(field):
+    return any(word in field.lower() for word in SECRET_WORDS)
+
+
+def hide_on_edit(entry):
+    entry.textEdited.connect(lambda _t: entry.setEchoMode(LineEdit.Password))
 from qtgui.settings_page import note, scrolled
 
 POLICY = (
@@ -49,7 +59,11 @@ class VenuePage(QWidget):
                 caption = BodyLabel(label, self)
                 caption.setFixedWidth(130)
                 line.addWidget(caption)
-                entry = LineEdit(self)
+                if is_secret(field):
+                    entry = PasswordLineEdit(self)
+                    hide_on_edit(entry)
+                else:
+                    entry = LineEdit(self)
                 line.addWidget(entry, 1)
                 env = CaptionLabel(variable, self)
                 env.setFixedWidth(200)
@@ -89,11 +103,15 @@ class VenuePage(QWidget):
                 where = credentials.source(name, field)
                 entry.setEnabled(True)
                 entry.clear()
+                if is_secret(field):
+                    entry.setEchoMode(LineEdit.Password)
                 if where == "environment":
+                    entry.setEchoMode(LineEdit.Normal)
                     entry.setText(f"{credentials.masked(values[field])}  "
                                   f"(from environment)")
                     entry.setEnabled(False)
                 elif where == "saved":
+                    entry.setEchoMode(LineEdit.Normal)
                     entry.setText(credentials.masked(values[field]))
 
     def save(self, name):

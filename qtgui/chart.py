@@ -236,19 +236,30 @@ class Chart(QWidget):
             if baseline is not None:
                 y = y1 - (baseline - lo) / (hi - lo) * (y1 - y0)
                 self._dashed(painter, QColor(scheme.muted), x0, y, x1)
+            good = _colour("good")
+            tags = []
             for name, values in drawable:
                 step = (x1 - x0) / (len(values) - 1)
                 points = [(x0 + i * step,
                            y1 - (v - lo) / (hi - lo) * (y1 - y0))
                           for i, v in enumerate(values)]
                 winner = name == best
-                good = _colour("good")
                 self._poly(painter, points,
                            good if winner else QColor(scheme.faint),
                            2.6 if winner else 1.4)
-                self._text(painter, points[-1][0] - 4, points[-1][1] - 9,
-                           name, good if winner else QColor(scheme.muted),
-                           "e")
+                tags.append([points[-1][1] - 9, points[-1][0] - 4, name, winner])
+            tags.sort(key=lambda tag: tag[0])
+            for i in range(1, len(tags)):
+                tags[i][0] = max(tags[i][0], tags[i - 1][0] + 12)
+            overflow = tags[-1][0] - (y1 - 4) if tags else 0
+            if overflow > 0:
+                for tag in tags:
+                    tag[0] -= overflow
+                for i in range(len(tags) - 2, -1, -1):
+                    tags[i][0] = min(tags[i][0], tags[i + 1][0] - 12)
+            for y, x, name, winner in sorted(tags, key=lambda tag: tag[3]):
+                self._text(painter, x, y, name,
+                           good if winner else QColor(scheme.muted), "e")
             if labels:
                 longest = max(drawable, key=lambda item: len(item[1]))[1]
                 step = (x1 - x0) / (len(longest) - 1)
