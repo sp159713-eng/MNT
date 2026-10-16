@@ -1,13 +1,12 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView,
-                               QTableWidgetItem, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 from qfluentwidgets import (CaptionLabel, CardWidget, InfoBar,
-                            InfoBarPosition, LargeTitleLabel,
-                            PrimaryPushButton, StrongBodyLabel, TableWidget,
-                            TitleLabel)
+                            InfoBarPosition, PrimaryPushButton,
+                            StrongBodyLabel, TitleLabel)
 
 import book
 from qtgui.common import StatCard
+from qtgui.stock_grid import StockGrid, quotes
 
 DESCRIPTION = ("The names the model would hold today, best score first. "
                "Press Compute holdings to work them out from the latest "
@@ -22,7 +21,6 @@ NOTE = ("Feature values are cross-sectional ranks in [-1, 1], not raw "
 TILES = (("names", "positions"), ("each", "per position"),
          ("cost", "round trip"), ("breakeven", "must move"))
 
-HEADERS = ("#", "Symbol", "Score", "6M mom rank", "21D vol rank", "Why")
 
 
 class BookPage(QWidget):
@@ -65,26 +63,11 @@ class BookPage(QWidget):
         body.addWidget(StrongBodyLabel("Holdings", card))
         body.addWidget(CaptionLabel("ranked by model score, highest first",
                                     card))
-        self.table = TableWidget(card)
-        self.table.setColumnCount(len(HEADERS))
-        self.table.setHorizontalHeaderLabels(HEADERS)
-        self.table.verticalHeader().hide()
-        self.table.setBorderVisible(False)
-        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.table.setSelectionMode(QAbstractItemView.SingleSelection)
-        header = self.table.horizontalHeader()
-        header.setStretchLastSection(True)
-        header.setDefaultAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        for column, width in enumerate((56, 128, 112, 144, 144)):
-            header.setSectionResizeMode(column, QHeaderView.Interactive)
-            self.table.setColumnWidth(column, width)
-        self.table.hide()
-        body.addWidget(self.table, 1)
-        self.empty = CaptionLabel(
-            "No holdings yet - press Compute holdings", card)
-        self.empty.setAlignment(Qt.AlignCenter)
-        body.addWidget(self.empty, 1)
+        self.grid = StockGrid("No holdings yet - press Compute holdings",
+                              card, tile_height=268)
+        self.grid.activated.connect(self._detail)
+        body.addWidget(self.grid, 1)
+        self.details = []
         self.note = CaptionLabel("", card)
         self.note.setWordWrap(True)
         body.addWidget(self.note)
@@ -106,22 +89,34 @@ class BookPage(QWidget):
         self.tiles["cost"].setText(f"{result['cost']:.0f}bp")
         self.tiles["breakeven"].setText(f"{result['breakeven']:.2f}%")
 
-        rows = result["rows"]
-        self.table.setRowCount(0)
-        self.table.setRowCount(len(rows))
-        for position, (_, row) in enumerate(rows.iterrows(), start=1):
-            values = (position, row["symbol"], f"{row['score']:+.4f}",
-                      f"{row['mom_126']:+.2f}", f"{row['vol_21']:+.2f}",
-                      row.get("why", ""))
-            for column, value in enumerate(values):
-                item = QTableWidgetItem(str(value))
-                if column in (0, 2, 3, 4):
-                    item.setTextAlignment(Qt.AlignCenter)
-                self.table.setItem(position - 1, column, item)
-        has_rows = self.table.rowCount() > 0
-        self.table.setVisible(has_rows)
-        self.empty.setVisible(not has_rows)
+        frame = result["rows"]
+        rows = [(row["symbol"], "-", "pick", "universe")
+                for _, row in frame.iterrows()]
+        self.grid.rows = []
+        self.grid.set_rows(rows)
+        for position, (_, row) in enumerate(frame.iterrows(), start=1):
+            lines = [(f"#{position}  score {row['score']:+.3f}", "muted"),
+                     (f"6M mom {row['mom_126']:+.2f}   "
+                      f"21D vol {row['vol_21']:+.2f}", "muted")]
+            why = row.get("why", "")
+            if why:
+                lines.append((why, "good"))
+            self.grid.set_details(row["symbol"], lines)
+        symbols = self.grid.symbols()
+        self.app.worker.submit(lambda: quotes(symbols), self.grid.set_quotes,
+                               lambda _e: None)
         self.note.setText(NOTE)
+
+    def _detail(self):
+        row = self.grid.selected()
+        if not row:
+            return
+        from qtgui.stock_detail import StockDetail
+
+        self.details = [d for d in self.details if d.isVisible()]
+        window = StockDetail(self.app, row[0])
+        self.details.append(window)
+        window.show()
 
     def _failed(self, error):
         self.run_button.setEnabled(True)

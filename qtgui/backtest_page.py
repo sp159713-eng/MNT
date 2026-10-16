@@ -10,7 +10,7 @@ from qfluentwidgets import (CaptionLabel, CheckBox, IndeterminateProgressBar,
                             RadioButton, Slider, SubtitleLabel)
 
 from qtgui.chart import Chart
-from qtgui.common import (DataTable, EditSpinBox, TabbedContainer, TitledCard,
+from qtgui.common import (DataTable, confirm, EditSpinBox, TabbedContainer, TitledCard,
                           set_tone)
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -237,6 +237,15 @@ class BacktestPage(QWidget):
         import theme as theme_module
 
         name = self.report["best"]
+        live = getattr(config, "PRODUCTION_SIGNAL", None)
+        if not confirm(
+                self, "Switch the live model?",
+                f"The Book, Signals and Orders pages will trade {name} "
+                f"instead of {live}, and it will be refitted now.\n\n"
+                f"Someone trades from these picks. Continue?",
+                danger=True, default_yes=False):
+            self.scores.setText("Switch cancelled - live model unchanged.")
+            return
         self.use_button.setEnabled(False)
         theme_module.save_signal(name)
         config.PRODUCTION_SIGNAL = name
