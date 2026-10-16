@@ -462,6 +462,16 @@
  },
  {
   "symbol": "CDSL",
+  "ex_date": "2017-07-03",
+  "factor": 0.500764,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2017-07-03",
+  "source_ratio_check": 0.500764,
+  "manual": true
+ },
+ {
+  "symbol": "CDSL",
   "ex_date": "2024-08-23",
   "factor": 0.5,
   "kind": "bonus",
@@ -941,6 +951,26 @@
   "source_ratio_check": 0.212467
  },
  {
+  "symbol": "INDIAMART",
+  "ex_date": "2019-10-29",
+  "factor": 0.494399,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2019-10-29",
+  "source_ratio_check": 0.494399,
+  "manual": true
+ },
+ {
+  "symbol": "INDIAMART",
+  "ex_date": "2020-11-17",
+  "factor": 0.487926,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2020-11-17",
+  "source_ratio_check": 0.487926,
+  "manual": true
+ },
+ {
   "symbol": "INDOCO",
   "ex_date": "2012-05-17",
   "factor": 0.13333333,
@@ -1392,6 +1422,16 @@
   "source_ratio_check": 0.224138
  },
  {
+  "symbol": "MASTEK",
+  "ex_date": "2015-06-12",
+  "factor": 0.34003,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2015-06-12",
+  "source_ratio_check": 0.34003,
+  "manual": true
+ },
+ {
   "symbol": "MFSL",
   "ex_date": "2016-01-27",
   "factor": 0.739186,
@@ -1489,6 +1529,16 @@
   "source": "both",
   "jump_date": "2021-06-17",
   "source_ratio_check": 0.099319
+ },
+ {
+  "symbol": "MOTILALOFS",
+  "ex_date": "2024-01-01",
+  "factor": 0.253868,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2024-01-01",
+  "source_ratio_check": 0.253868,
+  "manual": true
  },
  {
   "symbol": "MOTILALOFS",
@@ -1673,6 +1723,16 @@
   "source": "nse",
   "jump_date": "2013-03-21",
   "source_ratio_check": 0.38
+ },
+ {
+  "symbol": "PATANJALI",
+  "ex_date": "2020-01-27",
+  "factor": 0.050746,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2020-01-27",
+  "source_ratio_check": 0.050746,
+  "manual": true
  },
  {
   "symbol": "PAVNAIND",
@@ -2468,6 +2528,16 @@
   "source": "both",
   "jump_date": "2022-10-19",
   "source_ratio_check": 0.222284
+ },
+ {
+  "symbol": "TRENT",
+  "ex_date": "2026-01-01",
+  "factor": 0.669533,
+  "kind": "demerger",
+  "source": "yahoo",
+  "jump_date": "2026-01-01",
+  "source_ratio_check": 0.669533,
+  "manual": true
  },
  {
   "symbol": "TRIDENT",

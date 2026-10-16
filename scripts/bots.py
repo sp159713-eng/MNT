@@ -38,6 +38,7 @@ BOTS = {
     "sect360": {"signal": "sect:blend:lightgbm+mom_252"},
     "sect360_t40": {"signal": "sect:blend:lightgbm+mom_252", "every": 40},
     "sect360_t30": {"signal": "sect:blend:lightgbm+mom_252", "every": 30},
+    "sect360_k12": {"signal": "sect:blend:lightgbm+mom_252", "k": 12},
 }
 
 
@@ -165,7 +166,7 @@ def ensure_model(name, signal_name):
     log(name, f"model saved, roster {len(roster) if roster else 'universe'}")
 
 
-def model_targets(name, signal_name, on_date):
+def model_targets(name, signal_name, on_date, k=None):
     signal, bundle = production.load(bot_path(name, "model.joblib"),
                                      expect_name=signal_name)
     roster = bundle.get("roster")
@@ -176,7 +177,7 @@ def model_targets(name, signal_name, on_date):
     frame = panel[panel["timestamp"] == date].copy()
     frame["score"] = signal.predict(frame)
     return frame.sort_values("score", ascending=False).head(
-        config.TOP_K)["symbol"].tolist()
+        k or config.TOP_K)["symbol"].tolist()
 
 
 def momentum_targets(closes, date):
@@ -194,7 +195,7 @@ def trading_days_since(closes, last, date):
 def rebalance(name, spec, venue, closes, date, state):
     if spec["signal"]:
         ensure_model(name, spec["signal"])
-        targets = model_targets(name, spec["signal"], date)
+        targets = model_targets(name, spec["signal"], date, spec.get("k"))
     else:
         targets = momentum_targets(closes, date)
     equity = venue.value()[0]
@@ -318,7 +319,16 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("command", choices=["run", "status"])
     args = parser.parse_args()
-    sys.exit(cmd_run() if args.command == "run" else cmd_status())
+    code = cmd_run() if args.command == "run" else cmd_status()
+    if args.command == "run":
+        try:
+            import predict_log
+
+            predict_log.make()
+            predict_log.check()
+        except Exception as error:                              # noqa: BLE001
+            print(f"prediction log skipped: {error}")
+    sys.exit(code)
 
 
 if __name__ == "__main__":

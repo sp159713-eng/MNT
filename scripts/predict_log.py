@@ -39,6 +39,9 @@ def make():
         features_module.build_panel(), require_target=False)
     ranked = production.scored(panel)
     date = pd.Timestamp(ranked["timestamp"].iloc[0])
+    if any(row["made"] == str(date.date()) for row in load()):
+        print(f"already recorded for {date.date()}")
+        return
     top = ranked.iloc[0]
     symbol = top["symbol"]
     price, _ = close_on(symbol, date)
