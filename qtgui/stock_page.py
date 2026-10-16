@@ -4,12 +4,10 @@ from qfluentwidgets import BodyLabel, CaptionLabel, LineEdit, PushButton
 
 from qtgui.common import DataTable, TitledCard, set_tone
 from qtgui.stock_detail import StockDetail
+from qtgui.stock_grid import StockGrid, quotes
 
 LEFT = Qt.AlignLeft
 CENTER = Qt.AlignHCenter
-
-COLUMNS = (("Symbol", 140, LEFT), ("Sector", 220, LEFT),
-           ("Source", 110, CENTER), ("List", 110, CENTER))
 
 RESULT_COLUMNS = (("Symbol", 140, LEFT), ("Company", 420, LEFT),
                   ("Listed", 90, CENTER))
@@ -32,16 +30,14 @@ class UniversePage(QWidget):
         root = QVBoxLayout(self)
         root.setContentsMargins(32, 24, 32, 24)
         root.setSpacing(0)
-        self.card = TitledCard("Stock", "every name the book can see", self)
+        self.card = TitledCard("Stock", "every name the book can see - last close and day change; double-click for details", self)
         body = self.card.body
         root.addWidget(self.card, 1)
 
-        self.tree = DataTable(COLUMNS, "No stocks in the universe yet",
-                              stretch=1, parent=self.card)
-        self.tree.table.itemSelectionChanged.connect(self._select)
-        self.tree.table.cellDoubleClicked.connect(
-            lambda _r, _c: self._detail())
-        body.addWidget(self.tree, 1)
+        self.grid = StockGrid("No stocks in the universe yet", self.card)
+        self.grid.selectionChanged.connect(self._select)
+        self.grid.activated.connect(self._detail)
+        body.addWidget(self.grid, 1)
 
         row = QHBoxLayout()
         row.setSpacing(12)
@@ -114,8 +110,10 @@ class UniversePage(QWidget):
         import config
 
         rows = self._rows()
-        self.tree.set_rows(rows, tones=["muted" if r[3] == "watchlist"
-                                        else None for r in rows])
+        if self.grid.set_rows(rows):
+            symbols = self.grid.symbols()
+            self.app.worker.submit(lambda: quotes(symbols),
+                                   self.grid.set_quotes, lambda _e: None)
         summary = (f"Universe {len(config.UNIVERSE)} "
                    f"({len(config.USER_UNIVERSE)} added)"
                    f"   |   Watchlist {len(config.WATCHLIST)}")
@@ -123,12 +121,7 @@ class UniversePage(QWidget):
         self._selection_buttons()
 
     def _selected(self):
-        table = self.tree.table
-        row = table.currentRow()
-        if row < 0 or not table.selectedItems():
-            return None
-        return tuple(table.item(row, c).text()
-                     for c in range(table.columnCount()))
+        return self.grid.selected()
 
     def _select(self):
         values = self._selected()
