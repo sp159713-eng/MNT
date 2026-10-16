@@ -37,6 +37,7 @@ BOTS = {
     "nnblend": {"signal": "blend:nn346+mom_252"},
     "sect360": {"signal": "sect:blend:lightgbm+mom_252"},
     "sect360_t40": {"signal": "sect:blend:lightgbm+mom_252", "every": 40},
+    "sect360_t30": {"signal": "sect:blend:lightgbm+mom_252", "every": 30},
 }
 
 

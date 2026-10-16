@@ -39,6 +39,7 @@ Run with:  py -3.13 walkforward.py
 from __future__ import annotations
 
 import argparse
+import os
 import warnings
 
 import numpy as np
@@ -57,6 +58,8 @@ import signals as signals_module
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 SIZES, BUFFERS, WINDOWS = (4, 6, 8), (0, 6, 12), (1, 10, 20)
+if os.environ.get("MNT_SIZES"):
+    SIZES = tuple(int(part) for part in os.environ["MNT_SIZES"].split(","))
 
 # Confidence gate, in cross-sectional standard deviations of the score: below
 # this separation between the chosen names and the average name, hold rather
