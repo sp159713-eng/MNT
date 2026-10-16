@@ -23,15 +23,17 @@
 # executable when frozen, so they are the install's own writable state - a
 # model retrained in the packaged app has to survive it being closed.
 
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 datas = [('mnt.ico', '.'), ('data/corrections.json', 'data')]
 binaries = []
 hiddenimports = ['joblib', 'pandas', 'walkforward', 'backtest', 'metrics',
                  'auth', 'training', 'scipy.stats', 'explain',
-                 'model_info', 'model_timings']
+                 'model_info', 'model_timings', 'gui']
+hiddenimports += collect_submodules('qtgui')
 
-for package in ('lightgbm', 'sklearn', 'yfinance', 'curl_cffi'):
+for package in ('lightgbm', 'sklearn', 'yfinance', 'curl_cffi',
+                'qfluentwidgets'):
     collected = collect_all(package)
     datas += collected[0]
     binaries += collected[1]
@@ -39,7 +41,7 @@ for package in ('lightgbm', 'sklearn', 'yfinance', 'curl_cffi'):
 
 
 a = Analysis(
-    ['gui.py'],
+    ['ascent.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,

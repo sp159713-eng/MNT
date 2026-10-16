@@ -2,7 +2,7 @@
 ; Production NSE equity trading system
 
 #define MyAppName "Ascent"
-#define MyAppVersion "1.4.4"
+#define MyAppVersion "1.5.0"
 #define MyAppPublisher "Ascent"
 #define MyAppExeName "MNT.exe"
 #define MyAppURL "https://github.com/sp159713-eng/MNT"
@@ -73,6 +73,7 @@ Name: "{app}\data_cache"; Permissions: users-full
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{group}\{#MyAppName} (classic)"; Filename: "{app}\{#MyAppExeName}"; Parameters: "--classic"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 

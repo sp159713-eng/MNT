@@ -2,8 +2,9 @@ import csv
 import io
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE = os.path.join(BASE_DIR, "data_cache")
+import config
+
+CACHE = config.CACHE_DIR
 NAMES_FILE = os.path.join(CACHE, "EQUITY_L.csv")
 NAMES_URL = "https://nsearchives.nseindia.com/content/equities/EQUITY_L.csv"
 
@@ -37,7 +38,9 @@ def company_names():
 
 
 def history(symbol, bars=260):
-    path = os.path.join(CACHE, f"{symbol}_NS_1d_adj.csv")
+    import data as data_module
+
+    path = data_module._cache_path(symbol, "1d", False)
     try:
         with open(path, "rb") as handle:
             handle.seek(0, os.SEEK_END)
@@ -65,7 +68,7 @@ def top_picks():
     try:
         import json
 
-        with open(os.path.join(BASE_DIR, "artifacts", "predictions.json"),
+        with open(os.path.join(config.MODEL_DIR, "predictions.json"),
                   encoding="utf-8") as handle:
             made = json.load(handle)
         return set(made[-1].get("top5") or [])
